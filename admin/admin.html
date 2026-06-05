@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoneyMind Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--teal:#0A6E52;--tealBg:#E6F5F0;--ink:#0D1117;--ink2:#3D4451;--ink3:#7A8194;--surface:#F7F6F3;--card:#fff;--border:#E5E7EB;--red:#DC2626;--redbg:#FEF2F2;--green:#16A34A;--greenbg:#F0FDF4;--amber:#D97706;--amberbg:#FFFBEB}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--surface);color:var(--ink)}
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center}
+.login-box{background:var(--card);border-radius:16px;padding:40px;width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.1);text-align:center}
+.login-box h1{font-size:22px;font-weight:700;color:var(--teal);margin-bottom:6px}
+.login-box p{font-size:13px;color:var(--ink3);margin-bottom:24px}
+input,select,textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;transition:border .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--teal)}
+textarea{min-height:70px;resize:vertical}
+button{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:opacity .2s}
+.btn-primary{background:var(--teal);color:#fff}
+.btn-primary:hover{opacity:.9}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:6px}
+.btn-green{background:var(--greenbg);color:var(--green)}
+.btn-red{background:var(--redbg);color:var(--red)}
+.btn-amber{background:var(--amberbg);color:var(--amber)}
+.btn-teal{background:var(--tealBg);color:var(--teal)}
+#app{display:none}
+.sidebar{width:210px;background:#0D1117;min-height:100vh;position:fixed;left:0;top:0;padding:20px 0;overflow-y:auto}
+.sidebar-logo{padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo h1{font-size:17px;font-weight:800;color:#9FE1CB}
+.sidebar-logo p{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:11px 16px;cursor:pointer;color:rgba(255,255,255,.55);font-size:12px;font-weight:500;transition:all .2s}
+.nav-item:hover,.nav-item.active{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{border-right:3px solid #9FE1CB}
+.nav-icon{font-size:16px;width:20px;text-align:center}
+.main{margin-left:210px;padding:24px}
+.page{display:none}
+.page.active{display:block}
+.page-title{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.page-sub{font-size:12px;color:var(--ink3);margin-bottom:20px}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px}
+.stat-num{font-size:26px;font-weight:800;color:var(--teal)}
+.stat-label{font-size:11px;color:var(--ink3);margin-top:3px}
+.card{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:18px}
+.card-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap}
+.card-title{font-size:13px;font-weight:700;color:var(--ink)}
+table{width:100%;border-collapse:collapse}
+th{background:var(--surface);padding:9px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+td{padding:10px 14px;border-top:1px solid var(--border);font-size:12px;color:var(--ink2);vertical-align:middle}
+tr:hover td{background:#FAFAF9}
+.badge{display:inline-flex;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700}
+.badge-green{background:var(--greenbg);color:var(--green)}
+.badge-red{background:var(--redbg);color:var(--red)}
+.badge-amber{background:var(--amberbg);color:var(--amber)}
+.badge-teal{background:var(--tealBg);color:var(--teal)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:14px;padding:24px;width:520px;max-height:88vh;overflow-y:auto;max-width:95vw}
+.modal h2{font-size:15px;font-weight:700;margin-bottom:18px}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.modal-actions{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+.toast{position:fixed;bottom:20px;right:20px;background:#0D1117;color:#fff;padding:10px 18px;border-radius:8px;font-size:12px;font-weight:500;z-index:9999;display:none}
+.search-input{padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;width:220px;outline:none}
+.search-input:focus{border-color:var(--teal)}
+.price-cell{font-weight:600;color:var(--teal);font-size:11px}
+.city-select{padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;outline:none}
+.city-select:focus{border-color:var(--teal)}
+.price-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0}
+.price-box{background:var(--surface);border-radius:8px;padding:10px}
+.price-box label{font-size:9px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block}
+.price-box .price-range{font-size:13px;font-weight:700}
+.price-box.budget .price-range{color:var(--green)}
+.price-box.fair .price-range{color:var(--teal)}
+.price-box.premium .price-range{color:var(--red)}
+.inline-edit{display:flex;gap:6px;align-items:center}
+.inline-edit input{width:90px;padding:5px 8px;font-size:12px}
+
+.plan-tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:8px 16px;font-size:12px;font-weight:600;color:var(--ink3);cursor:pointer;border-radius:0;margin-bottom:-2px}
+.plan-tab-btn.active{color:var(--teal);border-bottom-color:var(--teal)}
+.plan-tab-btn:hover{color:var(--teal)}
+.q-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin:10px 14px;position:relative}
+.q-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.q-step{background:var(--teal);color:#fff;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700}
+.opt-row{display:flex;gap:6px;align-items:center;margin-bottom:5px}
+.opt-row input{flex:1;padding:5px 8px;font-size:11px}
+.insight-row{display:flex;gap:8px;align-items:flex-start;padding:10px 14px;border-bottom:1px solid var(--border)}
+.insight-row textarea{flex:1;padding:6px 8px;font-size:12px;min-height:50px;border:1px solid var(--border);border-radius:6px;resize:vertical}
+.premium-row{display:flex;gap:8px;align-items:flex-start;padding:10px 14px;border-bottom:1px solid var(--border)}
+.premium-row input{flex:1;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="login-box">
+    <div style="font-size:36px;margin-bottom:10px">💰</div>
+    <h1>MoneyMind Admin</h1>
+    <p>Enter your credentials to continue</p>
+    <div class="form-group" style="margin-top:18px;text-align:left">
+      <label>Backend URL</label>
+      <input id="apiUrl" value="http://localhost:8770" placeholder="https://your-api.onrender.com">
+    </div>
+    <div class="form-group" style="text-align:left">
+      <label>Admin Secret Key</label>
+      <input id="adminKey" type="password" placeholder="Enter admin secret">
+    </div>
+    <button class="btn-primary" style="width:100%;margin-top:8px" onclick="doLogin()">Login →</button>
+    <p id="loginError" style="color:#DC2626;font-size:11px;margin-top:8px;display:none"></p>
+  </div>
+</div>
+
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <h1>MoneyMind</h1>
+      <p>Admin Panel v4</p>
+    </div>
+    <div style="padding:12px 0">
+      <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">📊</span>Dashboard</div>
+      <div class="nav-item" onclick="showPage('leads',this)"><span class="nav-icon">📞</span>Leads</div>
+      <div class="nav-item" onclick="showPage('prices',this)"><span class="nav-icon">💰</span>Prices</div>
+      <div class="nav-item" onclick="showPage('categories',this)"><span class="nav-icon">🗂️</span>Categories</div>
+      <div class="nav-item" onclick="showPage('hacks',this)"><span class="nav-icon">💡</span>Money Hacks</div>
+      <div class="nav-item" onclick="showPage('bulletins',this)"><span class="nav-icon">📰</span>Price Bulletin</div>
+      <div class="nav-item" onclick="showPage('highlights',this)"><span class="nav-icon">📈</span>Market Ticker</div>
+      <div class="nav-item" onclick="showPage('trending',this)"><span class="nav-icon">🔥</span>Trending</div>
+      <div class="nav-item" onclick="showPage('planning',this)"><span class="nav-icon">📋</span>Planning</div>
+    </div>
+    <div style="padding:16px;position:absolute;bottom:0;left:0;right:0">
+      <div style="font-size:10px;color:rgba(255,255,255,.25);word-break:break-all" id="apiUrlDisplay"></div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">MoneyMind performance overview</div>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="stat-num">—</div><div class="stat-label">Total Leads</div></div>
+        <div class="stat-card"><div class="stat-num">—</div><div class="stat-label">Total Searches</div></div>
+        <div class="stat-card"><div class="stat-num">—</div><div class="stat-label">Categories</div></div>
+        <div class="stat-card"><div class="stat-num">—</div><div class="stat-label">Cities</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">📞 Recent Leads</span></div>
+        <table><thead><tr><th>Phone</th><th>Plan</th><th>City</th><th>Date</th></tr></thead>
+        <tbody id="recentLeads"><tr><td colspan="4" style="text-align:center;padding:20px;color:var(--ink3)">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- LEADS -->
+    <div id="page-leads" class="page">
+      <div class="page-title">Leads</div>
+      <div class="page-sub">Users who requested expert call-back</div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">All Leads</span><button class="btn-sm btn-green" onclick="exportLeads()">⬇ Export CSV</button></div>
+        <table><thead><tr><th>#</th><th>Phone</th><th>Plan</th><th>City</th><th>Date</th></tr></thead>
+        <tbody id="leadsTable"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--ink3)">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- PRICES -->
+    <div id="page-prices" class="page">
+      <div class="page-title">Price Manager</div>
+      <div class="page-sub">View and edit prices for all products across all cities</div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">All Products</span>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input class="search-input" id="priceSearch" placeholder="🔍 Search product..." oninput="filterPrices()">
+            <select class="city-select" id="cityFilter" onchange="loadPrices()">
+              <option value="Mumbai">Mumbai</option>
+              <option value="Delhi">Delhi</option>
+              <option value="Bengaluru">Bengaluru</option>
+              <option value="Hyderabad">Hyderabad</option>
+              <option value="Pune">Pune</option>
+              <option value="Chennai">Chennai</option>
+              <option value="Kolkata">Kolkata</option>
+              <option value="Jaipur">Jaipur</option>
+              <option value="Ahmedabad">Ahmedabad</option>
+              <option value="Lucknow">Lucknow</option>
+              <option value="Chandigarh">Chandigarh</option>
+              <option value="Kochi">Kochi</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Product</th><th>Category</th><th>Unit</th>
+            <th style="color:var(--green)">Budget Min</th><th style="color:var(--green)">Budget Max</th>
+            <th style="color:var(--teal)">Fair Min</th><th style="color:var(--teal)">Fair Max</th>
+            <th style="color:var(--red)">Premium Min</th><th style="color:var(--red)">Premium Max</th>
+            <th>Avg Price</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="pricesTable"><tr><td colspan="11" style="text-align:center;padding:20px;color:var(--ink3)">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div id="page-categories" class="page">
+      <div class="page-title">Categories</div>
+      <div class="page-sub">Manage all categories shown in the app</div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">All Categories</span>
+          <button class="btn-sm btn-green" onclick="openCatModal()">+ Add Category</button>
+        </div>
+        <table><thead><tr><th>Icon</th><th>Name</th><th>Section</th><th>Subtitle</th><th>Products</th><th>Order</th><th>Actions</th></tr></thead>
+        <tbody id="categoriesTable"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--ink3)">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- HACKS -->
+    <div id="page-hacks" class="page">
+      <div class="page-title">Money Saving Hacks</div>
+      <div class="page-sub">Daily tips shown on the home screen</div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">All Hacks</span>
+          <button class="btn-sm btn-green" onclick="openHackModal()">+ Add Hack</button>
+        </div>
+        <table><thead><tr><th>Category</th><th>Headline</th><th>Saving</th><th>Period</th><th>Actions</th></tr></thead>
+        <tbody id="hacksTable"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--ink3)">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- BULLETINS -->
+    <div id="page-bulletins" class="page">
+      <div class="page-title">Price Bulletin</div>
+      <div class="page-sub">News feed shown on the home screen</div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">All Bulletins</span>
+          <button class="btn-sm btn-green" onclick="openBulletinModal()">+ Add Bulletin</button>
+        </div>
+        <table><thead><tr><th>Category</th><th>City</th><th>Headline</th><th>Change</th><th>Period</th><th>Actions</th></tr></thead>
+        <tbody id="bulletinsTable"><tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ink3)">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- HIGHLIGHTS -->
+    <div id="page-highlights" class="page">
+      <div class="page-title">Market Ticker</div>
+      <div class="page-sub">Scrolling ticker on home screen (Gold, Petrol, etc.)</div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Ticker Items</span></div>
+        <table><thead><tr><th>Label</th><th>Value</th><th>Change</th><th>Direction</th><th>Actions</th></tr></thead>
+        <tbody id="highlightsTable"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--ink3)">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- TRENDING -->
+    <div id="page-trending" class="page">
+      <div class="page-title">Trending Searches</div>
+      <div class="page-sub">Popular searches shown on home screen chips</div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Trending Searches</span>
+          <button class="btn-sm btn-green" onclick="openTrendingModal()">+ Add Search</button>
+        </div>
+        <table><thead><tr><th>Query</th><th>City</th><th>Actions</th></tr></thead>
+        <tbody id="trendingTable"><tr><td colspan="3" style="text-align:center;padding:20px;color:var(--ink3)">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+
+    <!-- PLANNING -->
+    <div id="page-planning" class="page">
+      <div class="page-title">Planning Manager</div>
+      <div class="page-sub">Edit all 12 financial planning templates — questions, insights, premium items, and calculation logic</div>
+
+      <!-- Plan list -->
+      <div id="planListView">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">All Plans</span>
+            <button class="btn-sm btn-green" onclick="openNewPlanModal()">+ Add Plan</button>
+          </div>
+          <table>
+            <thead><tr><th>Icon</th><th>Plan</th><th>Section</th><th>Subtitle</th><th>Questions</th><th>Free Insights</th><th>Premium Items</th><th>Actions</th></tr></thead>
+            <tbody id="planListTable"><tr><td colspan="8" style="text-align:center;padding:20px;color:var(--ink3)">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Plan detail editor -->
+      <div id="planDetailView" style="display:none">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+          <button class="btn-sm btn-teal" onclick="closePlanDetail()">← Back to Plans</button>
+          <div>
+            <div style="font-size:18px;font-weight:700;color:var(--ink)" id="planDetailTitle">Plan Name</div>
+            <div style="font-size:11px;color:var(--ink3)" id="planDetailSubtitle">subtitle</div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:18px">
+          <button class="plan-tab-btn active" onclick="showPlanTab('info',this)">ℹ️ Info</button>
+          <button class="plan-tab-btn" onclick="showPlanTab('questions',this)">❓ Questions</button>
+          <button class="plan-tab-btn" onclick="showPlanTab('insights',this)">💡 Free Insights</button>
+          <button class="plan-tab-btn" onclick="showPlanTab('premium',this)">🔒 Premium Items</button>
+          <button class="plan-tab-btn" onclick="showPlanTab('formula',this)">🧮 Calculation Logic</button>
+        </div>
+
+        <!-- INFO TAB -->
+        <div id="planTab-info" class="plan-tab-content">
+          <div class="card" style="padding:18px">
+            <div class="form-row">
+              <div class="form-group"><label>Plan ID (slug)</label><input id="editPlanId" readonly style="background:#f5f5f5;color:var(--ink3)"></div>
+              <div class="form-group"><label>Label (display name)</label><input id="editPlanLabel"></div>
+            </div>
+            <div class="form-group"><label>Subtitle</label><input id="editPlanSubtitle"></div>
+            <div class="form-row">
+              <div class="form-group"><label>Icon (emoji)</label><input id="editPlanIcon" style="font-size:20px"></div>
+              <div class="form-group"><label>Section</label>
+                <select id="editPlanSection">
+                  <option>LIFE PLANNING</option>
+                  <option>WEALTH BUILDING</option>
+                  <option>BORROWING &amp; PROTECTION</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Background Color (hex)</label><input id="editPlanColor" placeholder="#E6F5F0"></div>
+              <div class="form-group"><label>Sort Order</label><input id="editPlanSort" type="number"></div>
+            </div>
+            <div style="margin-top:10px">
+              <button class="btn-sm btn-primary" onclick="savePlanInfo()">Save Plan Info</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- QUESTIONS TAB -->
+        <div id="planTab-questions" class="plan-tab-content" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Questions (shown to user in order)</span>
+              <button class="btn-sm btn-green" onclick="openAddQuestion()">+ Add Question</button>
+            </div>
+            <div id="questionsList"></div>
+          </div>
+        </div>
+
+        <!-- FREE INSIGHTS TAB -->
+        <div id="planTab-insights" class="plan-tab-content" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Free Insights (shown after calculation, no payment needed)</span>
+              <button class="btn-sm btn-green" onclick="addInsight()">+ Add Insight</button>
+            </div>
+            <div id="insightsList"></div>
+          </div>
+        </div>
+
+        <!-- PREMIUM ITEMS TAB -->
+        <div id="planTab-premium" class="plan-tab-content" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Premium Items (shown as locked — unlocked for ₹1,000)</span>
+              <button class="btn-sm btn-green" onclick="addPremiumItem()">+ Add Premium Item</button>
+            </div>
+            <div id="premiumList"></div>
+          </div>
+        </div>
+
+        <!-- FORMULA TAB -->
+        <div id="planTab-formula" class="plan-tab-content" style="display:none">
+          <div class="card" style="padding:18px">
+            <div style="background:#FFFBEB;border:1px solid #F59E0B;border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:#92400E">
+              ⚠️ <strong>Calculation Logic</strong> — This shows the formula currently used for this plan. To change the actual calculation, edit <code>main.py</code> in the <code>calc_results()</code> function and redeploy to Render. The preview below shows what the current logic computes.
+            </div>
+            <div class="form-group">
+              <label>Current Formula Summary (read-only — for reference)</label>
+              <textarea id="formulaDisplay" readonly style="background:#f9f9f9;min-height:200px;font-family:monospace;font-size:11px;color:#333"></textarea>
+            </div>
+            <div style="margin-top:10px">
+              <label style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase">Test the formula with sample inputs</label>
+              <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap" id="formulaTestArea"></div>
+              <button class="btn-sm btn-teal" style="margin-top:10px" onclick="testFormula()">▶ Run Test</button>
+              <div id="formulaTestResult" style="margin-top:10px;background:var(--surface);border-radius:8px;padding:12px;font-size:12px;display:none"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- PRICE EDIT MODAL -->
+<div class="modal-overlay" id="priceModal">
+  <div class="modal">
+    <h2 id="priceModalTitle">Edit Prices</h2>
+    <div style="background:var(--tealBg);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:var(--teal)">
+      <strong id="priceModalProduct"></strong> · <span id="priceModalCity"></span> · <span id="priceModalUnit"></span>
+    </div>
+    <input type="hidden" id="priceProductId">
+    <div class="form-row-3">
+      <div class="form-group">
+        <label style="color:var(--green)">Budget Min (₹)</label>
+        <input id="pBudgetMin" type="number">
+      </div>
+      <div class="form-group">
+        <label style="color:var(--green)">Budget Max (₹)</label>
+        <input id="pBudgetMax" type="number">
+      </div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+        <div style="background:var(--greenbg);border-radius:6px;padding:6px 10px;font-size:10px;color:var(--green);font-weight:600">BUDGET</div>
+      </div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group">
+        <label style="color:var(--teal)">Fair Min (₹)</label>
+        <input id="pFairMin" type="number">
+      </div>
+      <div class="form-group">
+        <label style="color:var(--teal)">Fair Max (₹)</label>
+        <input id="pFairMax" type="number">
+      </div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+        <div style="background:var(--tealBg);border-radius:6px;padding:6px 10px;font-size:10px;color:var(--teal);font-weight:600">FAIR RANGE</div>
+      </div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group">
+        <label style="color:var(--red)">Premium Min (₹)</label>
+        <input id="pPremiumMin" type="number">
+      </div>
+      <div class="form-group">
+        <label style="color:var(--red)">Premium Max (₹)</label>
+        <input id="pPremiumMax" type="number">
+      </div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+        <div style="background:var(--redbg);border-radius:6px;padding:6px 10px;font-size:10px;color:var(--red);font-weight:600">PREMIUM</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Average Market Price (₹)</label>
+      <input id="pAvgPrice" type="number">
+    </div>
+    <div style="background:#FFFBEB;border-radius:8px;padding:10px 12px;font-size:11px;color:var(--amber);margin-bottom:4px">
+      ⚠️ This edits prices for <strong id="pCityNote"></strong> only. To update all cities, use the Render backend and re-run the pricing script.
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-amber" onclick="closeModal('priceModal')">Cancel</button>
+      <button class="btn-sm btn-primary" onclick="savePrice()">Save Prices</button>
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORY MODAL -->
+<div class="modal-overlay" id="categoryModal">
+  <div class="modal">
+    <h2 id="catModalTitle">Add Category</h2>
+    <input type="hidden" id="catId">
+    <div class="form-row">
+      <div class="form-group"><label>Name</label><input id="catName" placeholder="e.g. Home Services"></div>
+      <div class="form-group"><label>Slug (unique ID)</label><input id="catSlug" placeholder="e.g. home-services"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Icon (emoji)</label><input id="catIcon" placeholder="🏠"></div>
+      <div class="form-group"><label>Sort Order</label><input id="catSort" type="number" value="99"></div>
+    </div>
+    <div class="form-group"><label>Subtitle</label><input id="catSubtitle" placeholder="Short description"></div>
+    <div class="form-group">
+      <label>Section</label>
+      <select id="catSection">
+        <option>Home & Living</option><option>Daily Needs</option><option>Vehicles & Transport</option>
+        <option>Technology</option><option>Health & Wellness</option><option>Education & Kids</option>
+        <option>Travel & Tourism</option><option>Life Events</option><option>Beauty & Fashion</option>
+        <option>Finance & Investments</option><option>Subscriptions & Digital</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-amber" onclick="closeModal('categoryModal')">Cancel</button>
+      <button class="btn-sm btn-primary" onclick="saveCategory()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- HACK MODAL -->
+<div class="modal-overlay" id="hackModal">
+  <div class="modal">
+    <h2 id="hackModalTitle">Add Hack</h2>
+    <input type="hidden" id="hackId">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Category</label>
+        <select id="hackCategory">
+          <option>ELECTRICITY</option><option>GROCERY</option><option>TRAVEL</option>
+          <option>TELECOM</option><option>INSURANCE</option><option>FOOD</option>
+          <option>BANKING</option><option>SHOPPING</option><option>FUEL</option><option>HEALTH</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Saving Amount</label><input id="hackSavingAmt" placeholder="e.g. ₹800"></div>
+    </div>
+    <div class="form-group"><label>Saving Period</label><input id="hackSavingPeriod" placeholder="per month"></div>
+    <div class="form-group"><label>Headline</label><input id="hackHeadline" placeholder="Short catchy headline..."></div>
+    <div class="form-group"><label>Detail</label><textarea id="hackDetail" placeholder="Full explanation..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-amber" onclick="closeModal('hackModal')">Cancel</button>
+      <button class="btn-sm btn-primary" onclick="saveHack()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULLETIN MODAL -->
+<div class="modal-overlay" id="bulletinModal">
+  <div class="modal">
+    <h2 id="bulletinModalTitle">Add Bulletin</h2>
+    <input type="hidden" id="bulletinId">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Category</label>
+        <select id="bulletinCategory">
+          <option>GROCERY</option><option>AUTO</option><option>HEALTH</option><option>ALERT</option>
+          <option>ELECTRONICS</option><option>TRAVEL</option><option>FUEL</option><option>REAL ESTATE</option>
+        </select>
+      </div>
+      <div class="form-group"><label>City (blank = All India)</label><input id="bulletinCity" placeholder="e.g. Mumbai"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Change % (negative = drop)</label><input id="bulletinChangePct" type="number" step="0.1" placeholder="-18.0"></div>
+      <div class="form-group"><label>Period</label><input id="bulletinPeriod" placeholder="THIS WEEK"></div>
+    </div>
+    <div class="form-group"><label>Headline</label><input id="bulletinHeadline"></div>
+    <div class="form-group"><label>Detail</label><textarea id="bulletinDetail"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-amber" onclick="closeModal('bulletinModal')">Cancel</button>
+      <button class="btn-sm btn-primary" onclick="saveBulletin()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- HIGHLIGHT MODAL -->
+<div class="modal-overlay" id="highlightModal">
+  <div class="modal">
+    <h2>Edit Ticker Item</h2>
+    <input type="hidden" id="highlightId">
+    <div class="form-row">
+      <div class="form-group"><label>Label</label><input id="highlightLabel" placeholder="Gold rate today"></div>
+      <div class="form-group"><label>Value</label><input id="highlightValue" placeholder="₹6,715/gm"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Change</label><input id="highlightChange" placeholder="+1.2%"></div>
+      <div class="form-group">
+        <label>Direction</label>
+        <select id="highlightIsUp"><option value="true">↑ Up (green)</option><option value="false">↓ Down (red)</option></select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-amber" onclick="closeModal('highlightModal')">Cancel</button>
+      <button class="btn-sm btn-primary" onclick="saveHighlight()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRENDING MODAL -->
+<div class="modal-overlay" id="trendingModal">
+  <div class="modal">
+    <h2>Add Trending Search</h2>
+    <div class="form-group"><label>Search Query</label><input id="trendingQuery" placeholder="e.g. Painter charges in Mumbai"></div>
+    <div class="form-group"><label>City (optional)</label><input id="trendingCity" placeholder="e.g. Mumbai"></div>
+    <div class="modal-actions">
+      <button class="btn-sm btn-amber" onclick="closeModal('trendingModal')">Cancel</button>
+      <button class="btn-sm btn-primary" onclick="saveTrending()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let API='', KEY='';
+let allPriceRows=[];
+
+async function apiFetch(path,opts={}) {
+  const r = await fetch(API+path,{headers:{'Content-Type':'application/json','x-admin-key':KEY},...opts});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+function toast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.display='block';
+  t.style.background=type==='error'?'#DC2626':'#0D1117';
+  setTimeout(()=>t.style.display='none',3000);
+}
+
+async function doLogin(){
+  API=document.getElementById('apiUrl').value.trim().replace(/\/$/,'');
+  KEY=document.getElementById('adminKey').value.trim();
+  const err=document.getElementById('loginError');
+  try{
+    await apiFetch('/api/admin/stats');
+    document.getElementById('login').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('apiUrlDisplay').textContent=API;
+    loadDashboard();
+  }catch(e){err.textContent='Login failed. Check URL and secret.';err.style.display='block';}
+}
+
+function showPage(page,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  if(el) el.classList.add('active');
+  const loaders={dashboard:loadDashboard,leads:loadLeads,prices:loadPrices,
+    categories:loadCategories,hacks:loadHacks,bulletins:loadBulletins,
+    highlights:loadHighlights,trending:loadTrending,planning:loadPlans};
+  if(loaders[page]) loaders[page]();
+}
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function fmt(v){
+  if(!v&&v!==0)return'—';
+  if(v>=10000000)return'₹'+(v/10000000).toFixed(1)+'Cr';
+  if(v>=100000)return'₹'+(v/100000).toFixed(1)+'L';
+  if(v>=1000)return'₹'+(v/1000).toFixed(1)+'K';
+  return'₹'+Math.round(v).toLocaleString('en-IN');
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────────────────────
+async function loadDashboard(){
+  try{
+    const d=await apiFetch('/api/admin/stats');
+    document.getElementById('statsGrid').innerHTML=`
+      <div class="stat-card"><div class="stat-num">${d.total_leads}</div><div class="stat-label">Total Leads</div></div>
+      <div class="stat-card"><div class="stat-num">${d.total_searches}</div><div class="stat-label">Total Searches</div></div>
+      <div class="stat-card"><div class="stat-num">${d.categories}</div><div class="stat-label">Categories</div></div>
+      <div class="stat-card"><div class="stat-num">${(d.cities||0).toLocaleString()}</div><div class="stat-label">Cities</div></div>`;
+    document.getElementById('recentLeads').innerHTML=d.recent_leads?.length
+      ?d.recent_leads.map(l=>`<tr><td><strong>📞 ${l.phone}</strong></td><td>${l.plan_name}</td><td>${l.city}</td><td>${l.created_at}</td></tr>`).join('')
+      :'<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--ink3)">No leads yet</td></tr>';
+  }catch(e){toast('Dashboard load failed','error');}
+}
+
+// ── LEADS ──────────────────────────────────────────────────────────────────
+async function loadLeads(){
+  try{
+    const d=await apiFetch('/api/admin/leads');
+    document.getElementById('leadsTable').innerHTML=d.length
+      ?d.map(l=>`<tr><td>${l.id}</td><td><strong>📞 ${l.phone}</strong></td><td><span class="badge badge-teal">${l.plan_name}</span></td><td>${l.city}</td><td>${l.created_at}</td></tr>`).join('')
+      :'<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--ink3)">No leads yet</td></tr>';
+  }catch(e){toast('Failed to load leads','error');}
+}
+function exportLeads(){
+  apiFetch('/api/admin/leads').then(d=>{
+    const csv=['ID,Phone,Plan ID,Plan Name,City,Date',...d.map(l=>`${l.id},${l.phone},${l.plan_id},"${l.plan_name}",${l.city},${l.created_at}`)].join('\n');
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download='moneymind_leads.csv';a.click();
+  });
+}
+
+// ── PRICES ─────────────────────────────────────────────────────────────────
+async function loadPrices(){
+  const city=document.getElementById('cityFilter').value;
+  document.getElementById('pricesTable').innerHTML='<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--ink3)">Loading all products...</td></tr>';
+  try{
+    const d=await apiFetch(`/api/admin/products?city=${encodeURIComponent(city)}`);
+    allPriceRows=d.products||[];
+    renderPricesTable(allPriceRows,city);
+  }catch(e){toast('Failed to load prices — check backend is running','error');}
+}
+
+function renderPricesTable(prods,city){
+  if(!prods.length){
+    document.getElementById('pricesTable').innerHTML='<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--ink3)">No products found</td></tr>';
+    return;
+  }
+  document.getElementById('pricesTable').innerHTML=prods.map(p=>{
+    const pr=p.price;
+    const safe=JSON.stringify({slug:p.slug,name:p.name,unit:p.unit,category:p.category}).replace(/'/g,"&#39;");
+    return`<tr>
+      <td><strong>${p.name}</strong>${p.is_popular?'<span class="badge badge-amber" style="margin-left:6px">★ Popular</span>':''}</td>
+      <td><span class="badge badge-teal">${p.category}</span></td>
+      <td style="color:var(--ink3);font-size:11px">${p.unit||'—'}</td>
+      <td class="price-cell" style="color:var(--green)">${pr?fmt(pr.budget_min):'—'}</td>
+      <td class="price-cell" style="color:var(--green)">${pr?fmt(pr.budget_max):'—'}</td>
+      <td class="price-cell" style="color:var(--teal)">${pr?fmt(pr.fair_min):'—'}</td>
+      <td class="price-cell" style="color:var(--teal)">${pr?fmt(pr.fair_max):'—'}</td>
+      <td class="price-cell" style="color:var(--red)">${pr?fmt(pr.premium_min):'—'}</td>
+      <td class="price-cell" style="color:var(--red)">${pr?fmt(pr.premium_max):'—'}</td>
+      <td class="price-cell">${pr?fmt(pr.avg_price):'—'}</td>
+      <td><button class="btn-sm btn-amber" onclick='openPriceEdit(${safe})'>✏️ Edit</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterPrices(){
+  const q=document.getElementById('priceSearch').value.toLowerCase();
+  const city=document.getElementById('cityFilter').value;
+  const filtered=allPriceRows.filter(p=>p.name.toLowerCase().includes(q)||p.category.toLowerCase().includes(q));
+  renderPricesTable(filtered,city);
+}
+
+function openPriceEdit(prod){
+  const city=document.getElementById('cityFilter').value;
+  document.getElementById('priceModalTitle').textContent=`Edit Prices — ${prod.name}`;
+  document.getElementById('priceModalProduct').textContent=prod.name;
+  document.getElementById('priceModalCity').textContent=city;
+  document.getElementById('priceModalUnit').textContent=prod.unit||'';
+  document.getElementById('priceProductId').value=prod.slug;
+  document.getElementById('pCityNote').textContent=city;
+  // Load current price from admin products API
+  apiFetch(`/api/admin/products?city=${encodeURIComponent(city)}`).then(d=>{
+    const match=(d.products||[]).find(x=>x.slug===prod.slug);
+    const pr=(match&&match.price)||{};
+    document.getElementById('pBudgetMin').value=pr.budget_min||'';
+    document.getElementById('pBudgetMax').value=pr.budget_max||'';
+    document.getElementById('pFairMin').value=pr.fair_min||'';
+    document.getElementById('pFairMax').value=pr.fair_max||'';
+    document.getElementById('pPremiumMin').value=pr.premium_min||'';
+    document.getElementById('pPremiumMax').value=pr.premium_max||'';
+    document.getElementById('pAvgPrice').value=pr.avg_price||'';
+  });
+  openModal('priceModal');
+}
+
+async function savePrice(){
+  const slug=document.getElementById('priceProductId').value;
+  const city=document.getElementById('cityFilter').value;
+  const data={
+    city,
+    budget_min:parseFloat(document.getElementById('pBudgetMin').value),
+    budget_max:parseFloat(document.getElementById('pBudgetMax').value),
+    fair_min:parseFloat(document.getElementById('pFairMin').value),
+    fair_max:parseFloat(document.getElementById('pFairMax').value),
+    premium_min:parseFloat(document.getElementById('pPremiumMin').value),
+    premium_max:parseFloat(document.getElementById('pPremiumMax').value),
+    avg_price:parseFloat(document.getElementById('pAvgPrice').value),
+  };
+  try{
+    await apiFetch(`/api/admin/prices/${slug}`,{method:'PUT',body:JSON.stringify(data)});
+    toast('✅ Price updated!');
+    closeModal('priceModal');
+    loadPrices();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+// ── CATEGORIES ─────────────────────────────────────────────────────────────
+async function loadCategories(){
+  try{
+    const d=await apiFetch('/api/admin/categories');
+    document.getElementById('categoriesTable').innerHTML=d.map(c=>`
+      <tr>
+        <td style="font-size:20px">${c.icon}</td>
+        <td><strong>${c.name}</strong><br><small style="color:var(--ink3)">${c.slug}</small></td>
+        <td><span class="badge badge-teal">${c.section}</span></td>
+        <td style="font-size:11px;color:var(--ink3);max-width:200px">${c.subtitle}</td>
+        <td><span class="badge badge-green">${c.product_count}</span></td>
+        <td>${c.sort_order}</td>
+        <td><div style="display:flex;gap:6px">
+          <button class="btn-sm btn-amber" onclick='editCategory(${JSON.stringify(c).replace(/'/g,"&#39;")})'>✏️ Edit</button>
+          <button class="btn-sm btn-red" onclick="deleteCategory(${c.id},'${c.name}')">🗑 Del</button>
+        </div></td>
+      </tr>`).join('');
+  }catch(e){toast('Failed','error');}
+}
+
+function openCatModal(){
+  document.getElementById('catModalTitle').textContent='Add Category';
+  document.getElementById('catId').value='';
+  ['catName','catSlug','catIcon','catSubtitle'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('catSort').value='99';
+  openModal('categoryModal');
+}
+
+function editCategory(c){
+  document.getElementById('catModalTitle').textContent='Edit Category';
+  document.getElementById('catId').value=c.id;
+  document.getElementById('catName').value=c.name;
+  document.getElementById('catSlug').value=c.slug;
+  document.getElementById('catIcon').value=c.icon;
+  document.getElementById('catSubtitle').value=c.subtitle;
+  document.getElementById('catSection').value=c.section;
+  document.getElementById('catSort').value=c.sort_order;
+  openModal('categoryModal');
+}
+
+async function saveCategory(){
+  const id=document.getElementById('catId').value;
+  const data={name:document.getElementById('catName').value,slug:document.getElementById('catSlug').value,
+    icon:document.getElementById('catIcon').value,subtitle:document.getElementById('catSubtitle').value,
+    section:document.getElementById('catSection').value,sort_order:parseInt(document.getElementById('catSort').value)||99};
+  try{
+    if(id) await apiFetch(`/api/admin/categories/${id}`,{method:'PUT',body:JSON.stringify(data)});
+    else await apiFetch('/api/admin/categories',{method:'POST',body:JSON.stringify(data)});
+    toast(id?'Updated!':'Created!');closeModal('categoryModal');loadCategories();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function deleteCategory(id,name){
+  if(!confirm(`Delete "${name}"?`))return;
+  try{await apiFetch(`/api/admin/categories/${id}`,{method:'DELETE'});toast('Deleted');loadCategories();}
+  catch(e){toast('Error','error');}
+}
+
+// ── HACKS ──────────────────────────────────────────────────────────────────
+async function loadHacks(){
+  try{
+    const d=await apiFetch('/api/hacks');
+    document.getElementById('hacksTable').innerHTML=d.map(h=>`
+      <tr>
+        <td><span class="badge badge-amber">${h.category}</span></td>
+        <td style="max-width:280px"><strong>${h.headline}</strong></td>
+        <td><span class="badge badge-green">${h.saving_amt}</span></td>
+        <td style="font-size:11px;color:var(--ink3)">${h.saving_period}</td>
+        <td><div style="display:flex;gap:6px">
+          <button class="btn-sm btn-amber" onclick='editHack(${JSON.stringify(h).replace(/'/g,"&#39;")})'>✏️ Edit</button>
+          <button class="btn-sm btn-red" onclick="deleteHack(${h.id})">🗑 Del</button>
+        </div></td>
+      </tr>`).join('');
+  }catch(e){toast('Failed','error');}
+}
+
+function openHackModal(){
+  document.getElementById('hackModalTitle').textContent='Add Hack';
+  document.getElementById('hackId').value='';
+  ['hackHeadline','hackDetail','hackSavingAmt','hackSavingPeriod'].forEach(id=>document.getElementById(id).value='');
+  openModal('hackModal');
+}
+
+function editHack(h){
+  document.getElementById('hackModalTitle').textContent='Edit Hack';
+  document.getElementById('hackId').value=h.id;
+  document.getElementById('hackCategory').value=h.category;
+  document.getElementById('hackHeadline').value=h.headline;
+  document.getElementById('hackDetail').value=h.detail||'';
+  document.getElementById('hackSavingAmt').value=h.saving_amt;
+  document.getElementById('hackSavingPeriod').value=h.saving_period;
+  openModal('hackModal');
+}
+
+async function saveHack(){
+  const id=document.getElementById('hackId').value;
+  const data={category:document.getElementById('hackCategory').value,
+    headline:document.getElementById('hackHeadline').value,
+    detail:document.getElementById('hackDetail').value,
+    saving_amt:document.getElementById('hackSavingAmt').value,
+    saving_period:document.getElementById('hackSavingPeriod').value};
+  try{
+    if(id) await apiFetch(`/api/admin/hacks/${id}`,{method:'PUT',body:JSON.stringify(data)});
+    else await apiFetch('/api/admin/hacks',{method:'POST',body:JSON.stringify(data)});
+    toast(id?'Updated!':'Created!');closeModal('hackModal');
+    document.getElementById('hackId').value='';
+    document.getElementById('hackModalTitle').textContent='Add Hack';
+    loadHacks();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function deleteHack(id){
+  if(!confirm('Delete this hack?'))return;
+  try{await apiFetch(`/api/admin/hacks/${id}`,{method:'DELETE'});toast('Deleted');loadHacks();}
+  catch(e){toast('Error','error');}
+}
+
+// ── BULLETINS ──────────────────────────────────────────────────────────────
+async function loadBulletins(){
+  try{
+    const d=await apiFetch('/api/bulletins');
+    document.getElementById('bulletinsTable').innerHTML=d.map(b=>`
+      <tr>
+        <td><span class="badge ${b.change_pct>0?'badge-red':'badge-green'}">${b.category}</span></td>
+        <td>${b.city||'All India'}</td>
+        <td style="max-width:250px;font-size:12px">${b.headline}</td>
+        <td><span class="badge ${b.change_pct>0?'badge-red':'badge-green'}">${b.change_pct>0?'+':''}${b.change_pct}%</span></td>
+        <td style="font-size:11px;color:var(--ink3)">${b.period}</td>
+        <td><div style="display:flex;gap:6px">
+          <button class="btn-sm btn-amber" onclick='editBulletin(${JSON.stringify(b).replace(/'/g,"&#39;")})'>✏️ Edit</button>
+          <button class="btn-sm btn-red" onclick="deleteBulletin(${b.id})">🗑 Del</button>
+        </div></td>
+      </tr>`).join('');
+  }catch(e){toast('Failed','error');}
+}
+
+function openBulletinModal(){
+  document.getElementById('bulletinModalTitle').textContent='Add Bulletin';
+  document.getElementById('bulletinId').value='';
+  ['bulletinCity','bulletinHeadline','bulletinDetail','bulletinChangePct','bulletinPeriod'].forEach(id=>document.getElementById(id).value='');
+  openModal('bulletinModal');
+}
+
+function editBulletin(b){
+  document.getElementById('bulletinModalTitle').textContent='Edit Bulletin';
+  document.getElementById('bulletinId').value=b.id;
+  document.getElementById('bulletinCategory').value=b.category;
+  document.getElementById('bulletinCity').value=b.city||'';
+  document.getElementById('bulletinHeadline').value=b.headline;
+  document.getElementById('bulletinDetail').value=b.detail||'';
+  document.getElementById('bulletinChangePct').value=b.change_pct;
+  document.getElementById('bulletinPeriod').value=b.period;
+  openModal('bulletinModal');
+}
+
+async function saveBulletin(){
+  const id=document.getElementById('bulletinId').value;
+  const data={category:document.getElementById('bulletinCategory').value,
+    city:document.getElementById('bulletinCity').value||null,
+    headline:document.getElementById('bulletinHeadline').value,
+    detail:document.getElementById('bulletinDetail').value,
+    change_pct:parseFloat(document.getElementById('bulletinChangePct').value),
+    period:document.getElementById('bulletinPeriod').value};
+  try{
+    if(id) await apiFetch(`/api/admin/bulletins/${id}`,{method:'PUT',body:JSON.stringify(data)});
+    else await apiFetch('/api/admin/bulletins',{method:'POST',body:JSON.stringify(data)});
+    toast(id?'Updated!':'Created!');closeModal('bulletinModal');
+    document.getElementById('bulletinId').value='';
+    document.getElementById('bulletinModalTitle').textContent='Add Bulletin';
+    loadBulletins();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function deleteBulletin(id){
+  if(!confirm('Delete?'))return;
+  try{await apiFetch(`/api/admin/bulletins/${id}`,{method:'DELETE'});toast('Deleted');loadBulletins();}
+  catch(e){toast('Error','error');}
+}
+
+// ── HIGHLIGHTS ─────────────────────────────────────────────────────────────
+async function loadHighlights(){
+  try{
+    const d=await apiFetch('/api/admin/highlights');
+    document.getElementById('highlightsTable').innerHTML=d.map(h=>`
+      <tr>
+        <td><strong>${h.label}</strong></td>
+        <td>${h.value}</td>
+        <td>${h.change}</td>
+        <td><span class="badge ${h.is_up?'badge-green':'badge-red'}">${h.is_up?'↑ Up':'↓ Down'}</span></td>
+        <td><button class="btn-sm btn-amber" onclick='editHighlight(${JSON.stringify(h).replace(/'/g,"&#39;")})'>✏️ Edit</button></td>
+      </tr>`).join('');
+  }catch(e){toast('Failed','error');}
+}
+
+function editHighlight(h){
+  document.getElementById('highlightId').value=h.id;
+  document.getElementById('highlightLabel').value=h.label;
+  document.getElementById('highlightValue').value=h.value;
+  document.getElementById('highlightChange').value=h.change;
+  document.getElementById('highlightIsUp').value=String(h.is_up);
+  openModal('highlightModal');
+}
+
+async function saveHighlight(){
+  const id=document.getElementById('highlightId').value;
+  const data={label:document.getElementById('highlightLabel').value,
+    value:document.getElementById('highlightValue').value,
+    change:document.getElementById('highlightChange').value,
+    is_up:document.getElementById('highlightIsUp').value==='true'};
+  try{
+    await apiFetch(`/api/admin/highlights/${id}`,{method:'PUT',body:JSON.stringify(data)});
+    toast('Updated!');closeModal('highlightModal');loadHighlights();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+// ── TRENDING ───────────────────────────────────────────────────────────────
+async function loadTrending(){
+  try{
+    const d=await apiFetch('/api/admin/trending');
+    document.getElementById('trendingTable').innerHTML=d.map(t=>`
+      <tr>
+        <td><strong>${t.query}</strong></td>
+        <td>${t.city||'—'}</td>
+        <td><button class="btn-sm btn-red" onclick="deleteTrending(${t.id})">🗑 Remove</button></td>
+      </tr>`).join('');
+  }catch(e){toast('Failed','error');}
+}
+
+function openTrendingModal(){openModal('trendingModal');}
+
+async function saveTrending(){
+  const data={query:document.getElementById('trendingQuery').value,
+    city:document.getElementById('trendingCity').value||null};
+  try{
+    await apiFetch('/api/admin/trending',{method:'POST',body:JSON.stringify(data)});
+    toast('Added!');closeModal('trendingModal');loadTrending();
+  }catch(e){toast('Error','error');}
+}
+
+async function deleteTrending(id){
+  try{await apiFetch(`/api/admin/trending/${id}`,{method:'DELETE'});toast('Removed');loadTrending();}
+  catch(e){toast('Error','error');}
+}
+
+
+
+// ═══════════════════════════════════════════════════════
+// PLANNING ADMIN
+// ═══════════════════════════════════════════════════════
+let currentPlanId = null;
+let currentPlanData = null;
+
+const FORMULA_SUMMARIES = {
+  'wedding': `Wedding Budget Calculator:
+• budget_per_head = total_budget / guests
+• venue_decor = budget × 30%
+• catering = budget × 35%
+• photography = budget × 12%
+• bridal_groom = budget × 10%
+• buffer = budget × 13%
+• catering_per_plate_fair = budget_per_head × 35%
+• verdict = "tight" if <₹800/head, "reasonable" if <₹2000, "comfortable" otherwise`,
+
+  'sip': `SIP Corpus Calculator (Compound Interest):
+• r = expected_return / 1200  (monthly rate)
+• n = years × 12             (total months)
+• corpus = SIP × ((1+r)^n - 1) / r × (1+r)
+• wealth_multiplier = corpus / total_invested
+Uses standard SIP future value formula`,
+
+  'retirement': `Retirement Corpus Calculator:
+• future_monthly_expense = current_expense × (1.06)^years
+• corpus_needed = future_expense × 12 × 25   (25x rule)
+• projected = current_savings × compound growth
+• monthly_investment_required = (needed × r) / ((1+r)^n - 1)`,
+
+  'loan': `Loan EMI Calculator:
+• EMI = P × r × (1+r)^n / ((1+r)^n - 1)
+  P = loan amount, r = rate/1200, n = tenure×12
+• is_affordable = EMI ≤ income × 40%
+• max_eligible_loan = available_EMI × ((1-(1+r)^-n)/r)`,
+
+  'insurance': `Insurance Coverage Calculator:
+• recommended_health = max(₹10L, income×0.5×members)
+• recommended_term = income × 12
+• estimated_health_premium = (age×200 + members×2500) × 12
+• estimated_term_premium = term_cover × 0.38%`,
+
+  'emergency-fund': `Emergency Fund Calculator:
+• target = monthly_expense × months_recommended
+• gap = max(0, target - current_savings)
+• months_covered = current_savings / monthly_expense`,
+
+  'expense-planning': `50-30-20 Budget Rule:
+• needs (50%) = food, rent, transport, utilities, health
+• wants (30%) = travel, subs, clothing, leisure
+• savings (20%) = SIP, emergency fund, investments`,
+
+  'car-ownership': `True Car Ownership Cost:
+• annual_fuel = km × ₹103 / kmpl
+• depreciation = price × 15%
+• total_annual = (emi×12) + insurance + fuel + service + depreciation
+• cost_per_km = total_annual / annual_km`,
+
+  'vacation': `Vacation Budget Calculator:
+• total = base_daily_rate × multiplier × nights × people
+• flights = total × 30%
+• hotel = total × 33%
+• food = total × 18%
+• transport = total × 10%
+• activities = total × 9%`,
+
+  'home-renovation': `Renovation Cost Estimator:
+• total = area_sqft × rate_per_sqft
+• civil_work = total × 38%
+• modular_furniture = total × 30%
+• electrical_plumbing = total × 12%
+• painting_flooring = total × 12%
+• contingency = total × 18%`,
+
+  'home-loan': `Home Loan Calculator:
+• loan = property_value × 80%
+• EMI = loan × r × (1+r)^n / ((1+r)^n - 1)
+• total_interest = total_payment - loan_amount
+• stamp_duty = value × 6%, registration = value × 1%`,
+
+  'child-education': `Education Corpus Planner:
+• future_cost = current_cost × (1.10)^years  (10% inflation)
+• corpus = SIP × ((1+r)^n - 1) / r × (1+r)  (at 12% return)
+• gap = max(0, future_cost - projected_corpus)`,
+};
+
+async function loadPlans() {
+  try {
+    const d = await apiFetch('/api/admin/plans');
+    document.getElementById('planListTable').innerHTML = d.plans.map(p => `
+      <tr>
+        <td style="font-size:22px">${p.icon}</td>
+        <td><strong>${p.label}</strong><br><small style="color:var(--ink3)">${p.plan_id}</small></td>
+        <td><span class="badge badge-teal">${p.section}</span></td>
+        <td style="font-size:11px;color:var(--ink3);max-width:180px">${p.subtitle}</td>
+        <td><span class="badge badge-green">${p.questions}</span></td>
+        <td><span class="badge badge-teal">${p.free_insights}</span></td>
+        <td><span class="badge badge-amber">${p.premium_items}</span></td>
+        <td><button class="btn-sm btn-amber" onclick="openPlanDetail('${p.plan_id}')">✏️ Edit</button></td>
+      </tr>`).join('');
+  } catch(e) { toast('Failed to load plans','error'); }
+}
+
+async function openPlanDetail(planId) {
+  currentPlanId = planId;
+  try {
+    const d = await apiFetch(`/api/admin/plan-detail/${planId}`);
+    currentPlanData = d;
+    document.getElementById('planListView').style.display = 'none';
+    document.getElementById('planDetailView').style.display = 'block';
+    document.getElementById('planDetailTitle').textContent = d.icon + '  ' + d.label;
+    document.getElementById('planDetailSubtitle').textContent = d.subtitle;
+    // Fill info tab
+    document.getElementById('editPlanId').value = d.plan_id;
+    document.getElementById('editPlanLabel').value = d.label;
+    document.getElementById('editPlanSubtitle').value = d.subtitle;
+    document.getElementById('editPlanIcon').value = d.icon;
+    document.getElementById('editPlanSection').value = d.section;
+    document.getElementById('editPlanColor').value = d.color||'';
+    document.getElementById('editPlanSort').value = d.sort_order||0;
+    // Load formula
+    document.getElementById('formulaDisplay').value = FORMULA_SUMMARIES[planId] || 'Formula not documented for this plan.';
+    buildFormulaTestArea(planId, d.questions);
+    // Show first tab
+    showPlanTab('info', document.querySelector('.plan-tab-btn'));
+    renderQuestions(d.questions);
+    renderInsights(d.free_insights);
+    renderPremiumItems(d.premium_items);
+  } catch(e) { toast('Failed to load plan','error'); }
+}
+
+function closePlanDetail() {
+  document.getElementById('planListView').style.display = 'block';
+  document.getElementById('planDetailView').style.display = 'none';
+  currentPlanId = null;
+}
+
+function showPlanTab(tab, el) {
+  document.querySelectorAll('.plan-tab-content').forEach(t => t.style.display='none');
+  document.querySelectorAll('.plan-tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('planTab-' + tab).style.display = 'block';
+  if (el) el.classList.add('active');
+}
+
+// ── PLAN INFO ──────────────────────────────────────────
+async function savePlanInfo() {
+  const data = {
+    label: document.getElementById('editPlanLabel').value,
+    subtitle: document.getElementById('editPlanSubtitle').value,
+    icon: document.getElementById('editPlanIcon').value,
+    section: document.getElementById('editPlanSection').value,
+    color_hex: document.getElementById('editPlanColor').value,
+    sort_order: parseInt(document.getElementById('editPlanSort').value)||0,
+  };
+  try {
+    await apiFetch(`/api/admin/plans/${currentPlanId}`, {method:'PUT', body:JSON.stringify(data)});
+    toast('Plan info saved!');
+    document.getElementById('planDetailTitle').textContent = data.icon + '  ' + data.label;
+    loadPlans();
+  } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+// ── QUESTIONS ──────────────────────────────────────────
+function renderQuestions(questions) {
+  const el = document.getElementById('questionsList');
+  if (!questions.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink3)">No questions yet</div>'; return; }
+  el.innerHTML = questions.map((q,i) => `
+    <div class="q-card" id="qcard-${q.id}">
+      <div class="q-card-header">
+        <span class="q-step">Step ${q.step_no}</span>
+        <div style="display:flex;gap:6px">
+          ${i>0?`<button class="btn-sm btn-teal" onclick="moveQuestion(${q.id},'up')">↑</button>`:''}
+          ${i<questions.length-1?`<button class="btn-sm btn-teal" onclick="moveQuestion(${q.id},'down')">↓</button>`:''}
+          <button class="btn-sm btn-red" onclick="deleteQuestion(${q.id})">🗑</button>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:8px">
+        <label>Question text</label>
+        <input value="${q.question.replace(/"/g,'&quot;')}" onchange="updateQuestionField(${q.id},'question',this.value)" style="width:100%">
+      </div>
+      <div class="form-row" style="margin-bottom:8px">
+        <div class="form-group">
+          <label>Field key</label>
+          <input value="${q.field_key}" onchange="updateQuestionField(${q.id},'field_key',this.value)">
+        </div>
+        <div class="form-group">
+          <label>Input type</label>
+          <select onchange="updateQuestionField(${q.id},'input_type',this.value)">
+            <option ${q.input_type==='choice'?'selected':''}>choice</option>
+            <option ${q.input_type==='number'?'selected':''}>number</option>
+            <option ${q.input_type==='text'?'selected':''}>text</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:6px">Options</label>
+        <div id="opts-${q.id}">
+          ${(q.options||[]).map((opt,oi) => `
+            <div class="opt-row">
+              <input placeholder="Label" value="${typeof opt==='string'?opt:(opt.label||'')}" onchange="updateOption(${q.id},${oi},'label',this.value)" style="flex:2">
+              <input placeholder="Hint (optional)" value="${typeof opt==='object'?(opt.hint||''):''}" onchange="updateOption(${q.id},${oi},'hint',this.value)" style="flex:1">
+              <button class="btn-sm btn-red" onclick="removeOption(${q.id},${oi})">✕</button>
+            </div>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button class="btn-sm btn-green" onclick="addOption(${q.id})">+ Add Option</button>
+          <button class="btn-sm btn-primary" onclick="saveQuestion(${q.id})">💾 Save Question</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function updateQuestionField(qId, field, value) {
+  const q = currentPlanData.questions.find(x=>x.id===qId);
+  if (q) q[field] = value;
+}
+
+function updateOption(qId, optIdx, key, value) {
+  const q = currentPlanData.questions.find(x=>x.id===qId);
+  if (!q || !q.options) return;
+  if (typeof q.options[optIdx] === 'string') q.options[optIdx] = {label: q.options[optIdx], hint:''};
+  q.options[optIdx][key] = value;
+}
+
+function addOption(qId) {
+  const q = currentPlanData.questions.find(x=>x.id===qId);
+  if (!q) return;
+  if (!q.options) q.options = [];
+  q.options.push({label:'', hint:''});
+  renderQuestions(currentPlanData.questions);
+}
+
+function removeOption(qId, optIdx) {
+  const q = currentPlanData.questions.find(x=>x.id===qId);
+  if (!q || !q.options) return;
+  q.options.splice(optIdx,1);
+  renderQuestions(currentPlanData.questions);
+}
+
+async function saveQuestion(qId) {
+  const q = currentPlanData.questions.find(x=>x.id===qId);
+  if (!q) return;
+  try {
+    await apiFetch(`/api/admin/questions/${qId}`, {method:'PUT', body:JSON.stringify({
+      question: q.question,
+      field_key: q.field_key,
+      input_type: q.input_type,
+      options: q.options,
+      step_no: q.step_no,
+    })});
+    toast('Question saved!');
+  } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+async function deleteQuestion(qId) {
+  if (!confirm('Delete this question?')) return;
+  try {
+    await apiFetch(`/api/admin/questions/${qId}`, {method:'DELETE'});
+    toast('Deleted'); openPlanDetail(currentPlanId);
+  } catch(e) { toast('Error','error'); }
+}
+
+async function moveQuestion(qId, dir) {
+  const qs = currentPlanData.questions;
+  const idx = qs.findIndex(x=>x.id===qId);
+  if (dir==='up' && idx>0) { [qs[idx],qs[idx-1]] = [qs[idx-1],qs[idx]]; }
+  else if (dir==='down' && idx<qs.length-1) { [qs[idx],qs[idx+1]] = [qs[idx+1],qs[idx]]; }
+  qs.forEach((q,i)=>q.step_no=i+1);
+  renderQuestions(qs);
+}
+
+async function openAddQuestion() {
+  const stepNo = (currentPlanData.questions||[]).length + 1;
+  try {
+    const d = await apiFetch(`/api/admin/questions`, {method:'POST', body:JSON.stringify({
+      plan_id: currentPlanId,
+      step_no: stepNo,
+      question: 'New question',
+      field_key: 'field_'+stepNo,
+      input_type: 'choice',
+      options: [{label:'Option 1', hint:''},{label:'Option 2', hint:''}],
+    })});
+    toast('Question added!'); openPlanDetail(currentPlanId);
+  } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+// ── FREE INSIGHTS ──────────────────────────────────────
+function renderInsights(insights) {
+  const el = document.getElementById('insightsList');
+  if (!insights.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink3)">No free insights yet</div>'; return; }
+  el.innerHTML = insights.map((ins,i) => `
+    <div class="insight-row">
+      <div style="background:var(--teal);color:#fff;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;min-width:24px;text-align:center">${i+1}</div>
+      <textarea onchange="currentPlanData.free_insights[${i}].text=this.value">${ins.text}</textarea>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="btn-sm btn-primary" onclick="saveInsight(${ins.id},${i})">💾</button>
+        <button class="btn-sm btn-red" onclick="deleteInsight(${ins.id})">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+async function addInsight() {
+  try {
+    await apiFetch('/api/admin/insights', {method:'POST', body:JSON.stringify({
+      plan_id: currentPlanId,
+      text: 'New insight — edit this text',
+      sort_order: (currentPlanData.free_insights||[]).length,
+    })});
+    toast('Insight added!'); openPlanDetail(currentPlanId);
+  } catch(e) { toast('Error','error'); }
+}
+
+async function saveInsight(insId, idx) {
+  const text = currentPlanData.free_insights[idx].text;
+  try {
+    await apiFetch(`/api/admin/insights/${insId}`, {method:'PUT', body:JSON.stringify({text})});
+    toast('Saved!');
+  } catch(e) { toast('Error','error'); }
+}
+
+async function deleteInsight(insId) {
+  if (!confirm('Delete this insight?')) return;
+  try {
+    await apiFetch(`/api/admin/insights/${insId}`, {method:'DELETE'});
+    toast('Deleted'); openPlanDetail(currentPlanId);
+  } catch(e) { toast('Error','error'); }
+}
+
+// ── PREMIUM ITEMS ──────────────────────────────────────
+function renderPremiumItems(items) {
+  const el = document.getElementById('premiumList');
+  if (!items.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink3)">No premium items yet</div>'; return; }
+  el.innerHTML = items.map((item,i) => `
+    <div class="premium-row">
+      <div style="background:var(--amber);color:#fff;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;min-width:24px;text-align:center">🔒</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:5px">
+        <input placeholder="Title" value="${item.title.replace(/"/g,'&quot;')}" onchange="currentPlanData.premium_items[${i}].title=this.value">
+        <input placeholder="Subtitle / description" value="${item.subtitle.replace(/"/g,'&quot;')}" onchange="currentPlanData.premium_items[${i}].subtitle=this.value">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="btn-sm btn-primary" onclick="savePremiumItem(${item.id},${i})">💾</button>
+        <button class="btn-sm btn-red" onclick="deletePremiumItem(${item.id})">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+async function addPremiumItem() {
+  try {
+    await apiFetch('/api/admin/premium-items', {method:'POST', body:JSON.stringify({
+      plan_id: currentPlanId,
+      title: 'New premium feature',
+      subtitle: 'Description of what this unlocks',
+      sort_order: (currentPlanData.premium_items||[]).length,
+    })});
+    toast('Premium item added!'); openPlanDetail(currentPlanId);
+  } catch(e) { toast('Error','error'); }
+}
+
+async function savePremiumItem(itemId, idx) {
+  const item = currentPlanData.premium_items[idx];
+  try {
+    await apiFetch(`/api/admin/premium-items/${itemId}`, {method:'PUT', body:JSON.stringify({
+      title: item.title, subtitle: item.subtitle
+    })});
+    toast('Saved!');
+  } catch(e) { toast('Error','error'); }
+}
+
+async function deletePremiumItem(itemId) {
+  if (!confirm('Delete this premium item?')) return;
+  try {
+    await apiFetch(`/api/admin/premium-items/${itemId}`, {method:'DELETE'});
+    toast('Deleted'); openPlanDetail(currentPlanId);
+  } catch(e) { toast('Error','error'); }
+}
+
+// ── FORMULA TESTER ─────────────────────────────────────
+function buildFormulaTestArea(planId, questions) {
+  const area = document.getElementById('formulaTestArea');
+  // Build sample inputs based on first option of each question
+  const sampleInputs = {};
+  (questions||[]).forEach(q => {
+    if (q.options && q.options.length > 0) {
+      const opt = q.options[0];
+      sampleInputs[q.field_key] = typeof opt === 'string' ? opt : opt.label;
+    }
+  });
+  area.innerHTML = Object.entries(sampleInputs).map(([k,v]) => `
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <label style="font-size:9px;font-weight:700;color:var(--ink3);text-transform:uppercase">${k}</label>
+      <input id="test_${k}" value="${v}" style="width:160px;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:11px">
+    </div>`).join('');
+  area.setAttribute('data-plan-id', planId);
+}
+
+async function testFormula() {
+  const planId = currentPlanId;
+  const inputs = {};
+  document.querySelectorAll('[id^="test_"]').forEach(el => {
+    inputs[el.id.replace('test_','')] = el.value;
+  });
+  try {
+    const d = await fetch(API + '/api/plans/' + planId + '/calculate', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({inputs})
+    }).then(r=>r.json());
+    const results = d.results || {};
+    const el = document.getElementById('formulaTestResult');
+    el.style.display='block';
+    el.innerHTML = '<strong style="color:var(--teal)">📊 Calculation Output:</strong><br><br>' +
+      Object.entries(results).map(([k,v]) => {
+        const label = k.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
+        const display = typeof v==='boolean'?(v?'✅ Yes':'⚠️ No'):
+          typeof v==='number'&&v>999?'₹'+Math.round(v).toLocaleString('en-IN'):
+          typeof v==='number'?v.toFixed(2):String(v);
+        return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:12px"><span style="color:var(--ink3)">${label}</span><strong>${display}</strong></div>`;
+      }).join('');
+  } catch(e) { toast('Test failed: '+e.message,'error'); }
+}
+
+function openNewPlanModal() {
+  toast('To add a new plan: add it in main.py calc_results() function and the PlanTemplate table, then redeploy. Coming soon as a full UI.', 'error');
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('login').style.display!=='none') doLogin();
+});
+</script>
+</body>
+</html>
