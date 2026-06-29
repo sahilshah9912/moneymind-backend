@@ -20,8 +20,9 @@ from models import (
     Category, Product, PriceRecord, CostBreakdown, VendorQuestion,
     PriceTrend, Insight, TrendingSearch, MarketHighlight, MoneyHack,
     PriceBulletin, PlanTemplate, PlanQuestion, PlanFreeInsight,
-    PlanPremiumItem, ExpenseCategory, ExpenseRule, SearchLog,
+    PlanPremiumItem, ExpenseCategory, ExpenseRule, SearchLog, Calculator,
 )
+from formula_engine import run_calculator, validate_formula_syntax, FormulaError
 
 try:
     from dotenv import load_dotenv
@@ -392,6 +393,13 @@ def admin_delete_category(cat_id: int, db: Session = Depends(get_db), _=Depends(
 class HackCreate(BaseModel):
     category: str; headline: str; detail: str; saving_amt: str; saving_period: str; sort_order: int = 99
 
+@app.get("/api/admin/hacks")
+def admin_list_hacks(db: Session = Depends(get_db), _=Depends(verify_admin)):
+    """Added — the admin panel needs to list existing hacks before editing/deleting them."""
+    return [{"id": h.id, "category": h.category, "headline": h.headline, "detail": h.detail,
+             "saving_amt": h.saving_amt, "saving_period": h.saving_period, "sort_order": h.sort_order}
+            for h in db.query(MoneyHack).order_by(MoneyHack.sort_order).all()]
+
 @app.post("/api/admin/hacks")
 def admin_create_hack(data: HackCreate, db: Session = Depends(get_db), _=Depends(verify_admin)):
     hack=MoneyHack(**data.dict()); db.add(hack); db.commit(); db.refresh(hack)
@@ -418,6 +426,13 @@ def admin_delete_hack(hack_id: int, db: Session = Depends(get_db), _=Depends(ver
 # ── Price Bulletins CRUD ──────────────────────────────────────────────────────
 class BulletinCreate(BaseModel):
     category: str; city: Optional[str]=None; headline: str; detail: str; change_pct: float; period: str; sort_order: int = 99
+
+@app.get("/api/admin/bulletins")
+def admin_list_bulletins(db: Session = Depends(get_db), _=Depends(verify_admin)):
+    """Added — the admin panel needs to list existing bulletins before editing/deleting them."""
+    return [{"id": b.id, "category": b.category, "city": b.city, "headline": b.headline, "detail": b.detail,
+             "change_pct": b.change_pct, "period": b.period, "sort_order": b.sort_order}
+            for b in db.query(PriceBulletin).order_by(PriceBulletin.sort_order).all()]
 
 @app.post("/api/admin/bulletins")
 def admin_create_bulletin(data: BulletinCreate, db: Session = Depends(get_db), _=Depends(verify_admin)):
@@ -458,6 +473,24 @@ def admin_update_highlight(hid: int, data: HighlightUpdate, db: Session = Depend
     db.commit()
     return {"success":True}
 
+class HighlightCreate(BaseModel):
+    label: str; value: str; change: str = ""; is_up: bool = True; sort_order: int = 99
+
+@app.post("/api/admin/highlights")
+def admin_create_highlight(data: HighlightCreate, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    """Added — admin previously had no way to add a new ticker entry, only edit existing ones."""
+    h = MarketHighlight(**data.dict())
+    db.add(h); db.commit(); db.refresh(h)
+    return {"success": True, "id": h.id}
+
+@app.delete("/api/admin/highlights/{hid}")
+def admin_delete_highlight(hid: int, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    """Added — admin previously had no way to remove a ticker entry."""
+    h = db.query(MarketHighlight).filter_by(id=hid).first()
+    if not h: raise HTTPException(404, "Highlight not found")
+    db.delete(h); db.commit()
+    return {"success": True}
+
 # ── Trending Searches CRUD ────────────────────────────────────────────────────
 class TrendingCreate(BaseModel):
     query: str; city: Optional[str]=None; count: int=100; sort_order: int=99
@@ -486,3 +519,477 @@ def admin_list_leads(_=Depends(verify_admin)):
     with engine.connect() as conn:
         rows=conn.execute(text("SELECT id,phone,plan_id,plan_name,city,created_at FROM leads ORDER BY created_at DESC")).fetchall()
     return [{"id":r[0],"phone":r[1],"plan_id":r[2],"plan_name":r[3],"city":r[4],"created_at":r[5]} for r in rows]
+
+# ── Price Edit endpoint (Admin) ───────────────────────────────────────────────
+class PriceUpdateRequest(BaseModel):
+    city: str
+    budget_min: Optional[float] = None
+    budget_max: Optional[float] = None
+    fair_min: Optional[float] = None
+    fair_max: Optional[float] = None
+    premium_min: Optional[float] = None
+    premium_max: Optional[float] = None
+    avg_price: Optional[float] = None
+
+@app.put("/api/admin/prices/{product_slug}")
+def admin_update_price(product_slug: str, data: PriceUpdateRequest,
+                       db: Session = Depends(get_db), _=Depends(verify_admin)):
+    p = db.query(Product).filter_by(slug=product_slug).first()
+    if not p:
+        raise HTTPException(404, "Product not found")
+    pr = db.query(PriceRecord).filter_by(product_id=p.id, city=data.city).first()
+    if not pr:
+        pr = PriceRecord(product_id=p.id, city=data.city)
+        db.add(pr)
+    for field in ["budget_min","budget_max","fair_min","fair_max",
+                  "premium_min","premium_max","avg_price"]:
+        val = getattr(data, field)
+        if val is not None:
+            setattr(pr, field, val)
+    db.commit()
+    return {"success": True, "product": product_slug, "city": data.city}
+
+# ── Admin Products list (for price manager) ───────────────────────────────────
+@app.get("/api/admin/products")
+def admin_list_products(city: str = "Mumbai", db: Session = Depends(get_db), _=Depends(verify_admin)):
+    products = db.query(Product).order_by(Product.name).all()
+    result = []
+    for p in products:
+        pr = (db.query(PriceRecord).filter_by(product_id=p.id, city=city).first()
+              or db.query(PriceRecord).filter_by(product_id=p.id).first())
+        result.append({
+            "id": p.id,
+            "name": p.name,
+            "slug": p.slug,
+            "unit": p.unit,
+            "category": p.category.name if p.category else "—",
+            "is_popular": p.is_popular,
+            "price": {
+                "budget_min": pr.budget_min, "budget_max": pr.budget_max,
+                "fair_min": pr.fair_min, "fair_max": pr.fair_max,
+                "premium_min": pr.premium_min, "premium_max": pr.premium_max,
+                "avg_price": pr.avg_price,
+            } if pr else None
+        })
+    return {"products": result, "city": city, "total": len(result)}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PLANNING ADMIN ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class PlanInfoUpdate(BaseModel):
+    label: Optional[str]=None
+    subtitle: Optional[str]=None
+    icon: Optional[str]=None
+    section: Optional[str]=None
+    color_hex: Optional[str]=None
+    sort_order: Optional[int]=None
+
+class QuestionCreate(BaseModel):
+    plan_id: str
+    step_no: int
+    question: str
+    field_key: str
+    input_type: str = "choice"
+    options: Optional[list] = None
+
+class QuestionUpdate(BaseModel):
+    question: Optional[str]=None
+    field_key: Optional[str]=None
+    input_type: Optional[str]=None
+    options: Optional[list]=None
+    step_no: Optional[int]=None
+
+class InsightCreate(BaseModel):
+    plan_id: str
+    text: str
+    sort_order: int = 0
+
+class InsightUpdate(BaseModel):
+    text: str
+
+class PremiumItemCreate(BaseModel):
+    plan_id: str
+    title: str
+    subtitle: str
+    sort_order: int = 0
+
+class PremiumItemUpdate(BaseModel):
+    title: Optional[str]=None
+    subtitle: Optional[str]=None
+
+# ── Plan list for admin ───────────────────────────────────────────────────────
+@app.get("/api/admin/plans")
+def admin_list_plans(db: Session = Depends(get_db), _=Depends(verify_admin)):
+    plans = db.query(PlanTemplate).order_by(PlanTemplate.sort_order).all()
+    return {"plans": [{
+        "plan_id": p.plan_id, "label": p.label, "subtitle": p.subtitle,
+        "icon": p.icon, "section": p.section, "color": p.color_hex,
+        "sort_order": p.sort_order,
+        "questions": len(p.questions),
+        "free_insights": len(p.free_insights),
+        "premium_items": len(p.premium_items),
+    } for p in plans]}
+
+# ── Full plan detail for admin ────────────────────────────────────────────────
+@app.get("/api/admin/plan-detail/{plan_id}")
+def admin_plan_detail(plan_id: str, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    p = db.query(PlanTemplate).filter_by(plan_id=plan_id).first()
+    if not p: raise HTTPException(404, "Plan not found")
+    return {
+        "plan_id": p.plan_id, "label": p.label, "subtitle": p.subtitle,
+        "icon": p.icon, "section": p.section, "color": p.color_hex,
+        "sort_order": p.sort_order,
+        "questions": [{"id":q.id,"step_no":q.step_no,"question":q.question,
+                        "field_key":q.field_key,"input_type":q.input_type,"options":q.options}
+                       for q in sorted(p.questions, key=lambda x: x.step_no)],
+        "free_insights": [{"id":fi.id,"text":fi.text,"sort_order":fi.sort_order}
+                           for fi in sorted(p.free_insights, key=lambda x: x.sort_order)],
+        "premium_items": [{"id":pi.id,"title":pi.title,"subtitle":pi.subtitle,"sort_order":pi.sort_order}
+                           for pi in sorted(p.premium_items, key=lambda x: x.sort_order)],
+    }
+
+# ── Update plan info ──────────────────────────────────────────────────────────
+@app.put("/api/admin/plans/{plan_id}")
+def admin_update_plan(plan_id: str, data: PlanInfoUpdate,
+                       db: Session = Depends(get_db), _=Depends(verify_admin)):
+    p = db.query(PlanTemplate).filter_by(plan_id=plan_id).first()
+    if not p: raise HTTPException(404, "Plan not found")
+    for k,v in data.dict(exclude_none=True).items(): setattr(p,k,v)
+    db.commit()
+    return {"success": True}
+
+# ── Questions CRUD ────────────────────────────────────────────────────────────
+@app.post("/api/admin/questions")
+def admin_create_question(data: QuestionCreate, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    p = db.query(PlanTemplate).filter_by(plan_id=data.plan_id).first()
+    if not p: raise HTTPException(404, "Plan not found")
+    q = PlanQuestion(plan_id=p.id, step_no=data.step_no, question=data.question,
+                     field_key=data.field_key, input_type=data.input_type, options=data.options or [])
+    db.add(q); db.commit(); db.refresh(q)
+    return {"success": True, "id": q.id}
+
+@app.put("/api/admin/questions/{q_id}")
+def admin_update_question(q_id: int, data: QuestionUpdate,
+                           db: Session = Depends(get_db), _=Depends(verify_admin)):
+    q = db.query(PlanQuestion).filter_by(id=q_id).first()
+    if not q: raise HTTPException(404, "Question not found")
+    for k,v in data.dict(exclude_none=True).items(): setattr(q,k,v)
+    db.commit()
+    return {"success": True}
+
+@app.delete("/api/admin/questions/{q_id}")
+def admin_delete_question(q_id: int, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    q = db.query(PlanQuestion).filter_by(id=q_id).first()
+    if not q: raise HTTPException(404)
+    db.delete(q); db.commit()
+    return {"success": True}
+
+# ── Free Insights CRUD ────────────────────────────────────────────────────────
+@app.post("/api/admin/insights")
+def admin_create_insight(data: InsightCreate, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    p = db.query(PlanTemplate).filter_by(plan_id=data.plan_id).first()
+    if not p: raise HTTPException(404)
+    fi = PlanFreeInsight(plan_id=p.id, text=data.text, sort_order=data.sort_order)
+    db.add(fi); db.commit(); db.refresh(fi)
+    return {"success": True, "id": fi.id}
+
+@app.put("/api/admin/insights/{fi_id}")
+def admin_update_insight(fi_id: int, data: InsightUpdate,
+                          db: Session = Depends(get_db), _=Depends(verify_admin)):
+    fi = db.query(PlanFreeInsight).filter_by(id=fi_id).first()
+    if not fi: raise HTTPException(404)
+    fi.text = data.text; db.commit()
+    return {"success": True}
+
+@app.delete("/api/admin/insights/{fi_id}")
+def admin_delete_insight(fi_id: int, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    fi = db.query(PlanFreeInsight).filter_by(id=fi_id).first()
+    if not fi: raise HTTPException(404)
+    db.delete(fi); db.commit()
+    return {"success": True}
+
+# ── Premium Items CRUD ────────────────────────────────────────────────────────
+@app.post("/api/admin/premium-items")
+def admin_create_premium(data: PremiumItemCreate, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    p = db.query(PlanTemplate).filter_by(plan_id=data.plan_id).first()
+    if not p: raise HTTPException(404)
+    pi = PlanPremiumItem(plan_id=p.id, title=data.title, subtitle=data.subtitle, sort_order=data.sort_order)
+    db.add(pi); db.commit(); db.refresh(pi)
+    return {"success": True, "id": pi.id}
+
+@app.put("/api/admin/premium-items/{pi_id}")
+def admin_update_premium(pi_id: int, data: PremiumItemUpdate,
+                          db: Session = Depends(get_db), _=Depends(verify_admin)):
+    pi = db.query(PlanPremiumItem).filter_by(id=pi_id).first()
+    if not pi: raise HTTPException(404)
+    for k,v in data.dict(exclude_none=True).items(): setattr(pi,k,v)
+    db.commit()
+    return {"success": True}
+
+@app.delete("/api/admin/premium-items/{pi_id}")
+def admin_delete_premium(pi_id: int, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    pi = db.query(PlanPremiumItem).filter_by(id=pi_id).first()
+    if not pi: raise HTTPException(404)
+    db.delete(pi); db.commit()
+    return {"success": True}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CALCULATOR CONFIG — enable/disable individual calculators from admin
+# Stored as a JSON file on the server (no DB table needed)
+# ══════════════════════════════════════════════════════════════════════════════
+CALC_CONFIG_FILE = "calculator_config.json"
+
+def load_calc_config():
+    """Load calculator config from JSON file, return dict {calc_id: {enabled, label}}"""
+    if os.path.exists(CALC_CONFIG_FILE):
+        try:
+            with open(CALC_CONFIG_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_calc_config(config: dict):
+    with open(CALC_CONFIG_FILE, "w") as f:
+        json.dump(config, f, indent=2)
+
+class CalcConfigUpdate(BaseModel):
+    calculator_id: str
+    enabled: bool
+
+class BulkCalcConfigUpdate(BaseModel):
+    config: dict  # {calc_id: {"enabled": bool}}
+
+@app.get("/api/calculators/config")
+def get_calc_config():
+    """Public endpoint — app reads this on load to know which calculators are enabled"""
+    return {"config": load_calc_config()}
+
+@app.put("/api/admin/calculators/config")
+def update_calc_config_bulk(data: BulkCalcConfigUpdate, _=Depends(verify_admin)):
+    """Save full calculator config dict from admin panel"""
+    save_calc_config(data.config)
+    return {"success": True, "saved": len(data.config)}
+
+@app.put("/api/admin/calculators/{calc_id}/toggle")
+def toggle_calculator(calc_id: str, data: CalcConfigUpdate, _=Depends(verify_admin)):
+    """Toggle a single calculator on or off"""
+    config = load_calc_config()
+    if calc_id not in config:
+        config[calc_id] = {}
+    config[calc_id]["enabled"] = data.enabled
+    save_calc_config(config)
+    return {"success": True, "calculator_id": calc_id, "enabled": data.enabled}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# NEW — 50-calculator Planning rebuild with admin formula editor.
+# Distinct from the CALC_CONFIG_FILE toggle system above (that's a simple
+# enable/disable flag file; this is the actual calculator data + math, stored
+# in the database via the new Calculator model). Purely additive — nothing
+# above this line was changed.
+# ══════════════════════════════════════════════════════════════════════════════
+
+class CalculatorIn(BaseModel):
+    slug: str
+    name: str
+    category: str
+    icon: str = "🧮"
+    description: str = ""
+    is_featured: bool = False
+    featured_order: int = 0
+    featured_group: Optional[str] = None
+    sort_order: int = 0
+    active: bool = True
+    inputs: list
+    formula: str
+    formula_steps: Optional[list] = []
+    outputs: list
+    constants: Optional[dict] = {}
+
+
+class CalculatorRunRequest(BaseModel):
+    values: dict
+
+
+class FormulaValidateRequest(BaseModel):
+    formula: str
+    known_vars: list
+
+
+# ── Public: list + run calculators ──────────────────────────────────────────
+@app.get("/api/calculators")
+def list_calculators(db: Session = Depends(get_db)):
+    """
+    All active calculators for the Planning screen, plus the 5 (or fewer) featured
+    home-screen tiles. Calculators sharing a `featured_group` collapse into ONE tile
+    with multiple modes (e.g. Fresh Loan + Refinance under one tile).
+    """
+    calcs = db.query(Calculator).filter(Calculator.active == True).order_by(Calculator.sort_order).all()
+    featured = [c for c in calcs if c.is_featured]
+    featured.sort(key=lambda c: c.featured_order)
+
+    featured_tiles = []
+    seen_groups = set()
+    for c in featured:
+        if c.featured_group:
+            if c.featured_group in seen_groups:
+                continue
+            seen_groups.add(c.featured_group)
+            modes = [fc for fc in featured if fc.featured_group == c.featured_group]
+            featured_tiles.append({
+                "tile_id": c.featured_group,
+                "name": modes[0].name.split("(")[0].strip() if len(modes) > 1 else modes[0].name,
+                "icon": modes[0].icon,
+                "is_multi_mode": True,
+                "modes": [{"slug": m.slug, "label": m.name, "icon": m.icon} for m in modes],
+            })
+        else:
+            featured_tiles.append({
+                "tile_id": c.slug, "name": c.name, "icon": c.icon,
+                "is_multi_mode": False,
+                "modes": [{"slug": c.slug, "label": c.name, "icon": c.icon}],
+            })
+
+    by_category = {}
+    for c in calcs:
+        by_category.setdefault(c.category, []).append({
+            "slug": c.slug, "name": c.name, "icon": c.icon,
+            "description": c.description, "category": c.category,
+        })
+
+    return {"featured": featured_tiles, "categories": by_category, "total": len(calcs)}
+
+
+@app.get("/api/calculators/{slug}")
+def get_calculator(slug: str, db: Session = Depends(get_db)):
+    c = db.query(Calculator).filter(Calculator.slug == slug, Calculator.active == True).first()
+    if not c:
+        raise HTTPException(404, "Calculator not found")
+    return {
+        "slug": c.slug, "name": c.name, "icon": c.icon, "category": c.category,
+        "description": c.description, "inputs": c.inputs, "outputs": c.outputs,
+    }
+
+
+@app.post("/api/calculators/{slug}/run")
+def run_calculator_endpoint(slug: str, payload: CalculatorRunRequest, db: Session = Depends(get_db)):
+    c = db.query(Calculator).filter(Calculator.slug == slug, Calculator.active == True).first()
+    if not c:
+        raise HTTPException(404, "Calculator not found")
+
+    values = {}
+    for inp in c.inputs:
+        key = inp["key"]
+        values[key] = payload.values.get(key, inp.get("default", 0))
+
+    try:
+        result_vars = run_calculator(values, c.formula_steps, c.formula, c.constants)
+    except FormulaError as e:
+        raise HTTPException(500, f"Calculation error: {e}")
+
+    outputs = {out["key"]: result_vars.get(out["key"]) for out in c.outputs}
+    return {"slug": slug, "inputs_used": values, "outputs": outputs}
+
+
+# ── Admin: full CRUD + formula editor support ───────────────────────────────
+@app.get("/api/admin/calculators-v2")
+def admin_list_calculators_v2(db: Session = Depends(get_db), _=Depends(verify_admin)):
+    """
+    Named -v2 to avoid any collision with the existing /api/admin/calculators/config
+    toggle-file system above. Returns full calculator data incl. formulas, for the
+    admin panel's formula editor.
+    """
+    calcs = db.query(Calculator).order_by(Calculator.category, Calculator.sort_order).all()
+    return [{
+        "id": c.id, "slug": c.slug, "name": c.name, "category": c.category, "icon": c.icon,
+        "description": c.description, "is_featured": c.is_featured, "featured_order": c.featured_order,
+        "featured_group": c.featured_group, "sort_order": c.sort_order, "active": c.active,
+        "inputs": c.inputs, "formula": c.formula, "formula_steps": c.formula_steps,
+        "outputs": c.outputs, "constants": c.constants,
+    } for c in calcs]
+
+
+@app.get("/api/admin/calculators-v2/{slug}")
+def admin_get_calculator_v2(slug: str, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    c = db.query(Calculator).filter(Calculator.slug == slug).first()
+    if not c:
+        raise HTTPException(404, "Calculator not found")
+    return {
+        "id": c.id, "slug": c.slug, "name": c.name, "category": c.category, "icon": c.icon,
+        "description": c.description, "is_featured": c.is_featured, "featured_order": c.featured_order,
+        "featured_group": c.featured_group, "sort_order": c.sort_order, "active": c.active,
+        "inputs": c.inputs, "formula": c.formula, "formula_steps": c.formula_steps,
+        "outputs": c.outputs, "constants": c.constants,
+    }
+
+
+@app.put("/api/admin/calculators-v2/{slug}")
+def admin_update_calculator_v2(slug: str, payload: CalculatorIn, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    c = db.query(Calculator).filter(Calculator.slug == slug).first()
+    if not c:
+        raise HTTPException(404, "Calculator not found")
+
+    known_vars = [i["key"] for i in payload.inputs] + list((payload.constants or {}).keys())
+    for step in (payload.formula_steps or []):
+        known_vars.append(step.get("var"))
+
+    for step in (payload.formula_steps or []):
+        check = validate_formula_syntax(step["expr"], known_vars)
+        if not check["valid"]:
+            raise HTTPException(400, f"Invalid formula in step '{step.get('var')}': {check['error']}")
+    final_check = validate_formula_syntax(payload.formula, known_vars)
+    if not final_check["valid"]:
+        raise HTTPException(400, f"Invalid final formula: {final_check['error']}")
+
+    for field, value in payload.dict().items():
+        setattr(c, field, value)
+    db.commit()
+    return {"success": True, "slug": c.slug}
+
+
+@app.post("/api/admin/calculators-v2")
+def admin_create_calculator_v2(payload: CalculatorIn, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    existing = db.query(Calculator).filter(Calculator.slug == payload.slug).first()
+    if existing:
+        raise HTTPException(400, "A calculator with this slug already exists")
+
+    known_vars = [i["key"] for i in payload.inputs] + list((payload.constants or {}).keys())
+    for step in (payload.formula_steps or []):
+        known_vars.append(step.get("var"))
+    final_check = validate_formula_syntax(payload.formula, known_vars)
+    if not final_check["valid"]:
+        raise HTTPException(400, f"Invalid formula: {final_check['error']}")
+
+    c = Calculator(**payload.dict())
+    db.add(c)
+    db.commit()
+    return {"success": True, "slug": c.slug}
+
+
+@app.delete("/api/admin/calculators-v2/{slug}")
+def admin_delete_calculator_v2(slug: str, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    c = db.query(Calculator).filter(Calculator.slug == slug).first()
+    if not c:
+        raise HTTPException(404, "Calculator not found")
+    db.delete(c)
+    db.commit()
+    return {"success": True}
+
+
+@app.post("/api/admin/calculators-v2/validate-formula")
+def admin_validate_formula_v2(payload: FormulaValidateRequest, _=Depends(verify_admin)):
+    return validate_formula_syntax(payload.formula, payload.known_vars)
+
+
+@app.post("/api/admin/calculators-v2/{slug}/test-run")
+def admin_test_run_calculator_v2(slug: str, payload: CalculatorRunRequest, db: Session = Depends(get_db), _=Depends(verify_admin)):
+    c = db.query(Calculator).filter(Calculator.slug == slug).first()
+    if not c:
+        raise HTTPException(404, "Calculator not found")
+    try:
+        result_vars = run_calculator(payload.values, c.formula_steps, c.formula, c.constants)
+    except FormulaError as e:
+        raise HTTPException(400, str(e))
+    return {"all_variables": result_vars}

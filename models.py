@@ -198,3 +198,41 @@ class PlanUnlock(Base):
     device_id  = Column(String, nullable=False)
     amount     = Column(Float, default=1000.0)
     unlocked_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NEW — added for the 50-calculator Planning rebuild + admin formula editor.
+# Purely additive: does not touch or modify any model above.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class Calculator(Base):
+    """
+    Each row = one calculator (out of 50). Replaces the old hardcoded calc_results()
+    function in main.py's PLANNING section — instead of a Python if/elif chain per
+    plan_id, each calculator's math lives here as an admin-editable formula.
+
+    `inputs`/`outputs` describe the fields shown to the user (label, default, min/max, unit).
+    `formula`/`formula_steps` are evaluated server-side via formula_engine.py's safe
+    AST-based evaluator — no eval(), no code-injection risk from the admin formula editor.
+    """
+    __tablename__ = "calculators"
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String, unique=True, nullable=False)       # e.g. "home-loan-emi"
+    name = Column(String, nullable=False)
+    category = Column(String, nullable=False)                # "Loans", "Insurance", etc.
+    icon = Column(String, default="🧮")
+    description = Column(String, default="")
+    is_featured = Column(Boolean, default=False)              # shows in "5 Major Planning Tools" on home
+    featured_order = Column(Integer, default=0)
+    featured_group = Column(String, nullable=True)             # calcs sharing a group collapse into ONE home tile (e.g. Fresh Loan + Refinance)
+    sort_order = Column(Integer, default=0)
+    active = Column(Boolean, default=True)
+
+    inputs = Column(JSON, nullable=False, default=list)
+    formula = Column(Text, nullable=False, default="")
+    formula_steps = Column(JSON, nullable=True, default=list)
+    outputs = Column(JSON, nullable=False, default=list)
+    constants = Column(JSON, nullable=True, default=dict)
+
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
