@@ -993,3 +993,20 @@ def admin_test_run_calculator_v2(slug: str, payload: CalculatorRunRequest, db: S
     except FormulaError as e:
         raise HTTPException(400, str(e))
     return {"all_variables": result_vars}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ONE-TIME SEED TRIGGER — visit this URL once in a browser to populate the
+# `calculators` table on Render's free tier, which has no Shell access.
+# Safe to call multiple times (seed() updates existing rows rather than
+# duplicating them). Safe to delete this endpoint after you've used it once.
+# Usage: https://your-backend.onrender.com/api/admin/seed-calculators?key=YOUR_ADMIN_SECRET
+# ══════════════════════════════════════════════════════════════════════════════
+@app.get("/api/admin/seed-calculators")
+def trigger_seed_calculators(key: str, db: Session = Depends(get_db)):
+    if key != ADMIN_SECRET:
+        raise HTTPException(401, "Invalid key")
+    from seed_calculators import seed
+    seed(db)
+    count = db.query(Calculator).count()
+    return {"success": True, "message": f"Seeded calculators. Total now in database: {count}"}
