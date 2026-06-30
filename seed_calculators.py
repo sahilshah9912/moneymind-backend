@@ -11,9 +11,9 @@ CALCULATORS = [
 
     # ═══════════════════════════ LOANS (8) — incl. 2 featured ═══════════════════════════
     {
-        "slug": "home-loan-emi", "name": "Home Loan EMI Calculator", "category": "Loans",
+        "slug": "home-loan-emi", "name": "Home Loan EMI Planner", "category": "Loans",
         "icon": "🏠", "description": "Calculate monthly EMI for a fresh home loan.",
-        "is_featured": True, "featured_order": 1, "featured_group": "loan_tool", "sort_order": 1,
+        "is_featured": True, "featured_order": 1, "sort_order": 1,
         "inputs": [
             {"key": "loan_amount", "label": "Loan Amount", "type": "number", "default": 5000000, "min": 100000, "max": 100000000, "unit": "₹", "step": 50000},
             {"key": "annual_rate", "label": "Interest Rate", "type": "number", "default": 8.5, "min": 5, "max": 20, "unit": "%", "step": 0.05},
@@ -65,7 +65,7 @@ CALCULATORS = [
     {
         "slug": "loan-refinance-comparator", "name": "Loan Refinance / Balance Transfer", "category": "Loans",
         "icon": "🔄", "description": "Compare your current loan vs a refinanced lower-rate loan.",
-        "is_featured": True, "featured_order": 1, "featured_group": "loan_tool", "sort_order": 3,
+        "is_featured": False, "featured_order": 0, "sort_order": 3,
         "inputs": [
             {"key": "outstanding_principal", "label": "Outstanding Principal", "type": "number", "default": 4000000, "min": 10000, "max": 100000000, "unit": "₹", "step": 10000},
             {"key": "old_rate", "label": "Current Interest Rate", "type": "number", "default": 9.5, "min": 5, "max": 20, "unit": "%", "step": 0.05},
@@ -93,7 +93,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "car-loan-emi", "name": "Car Loan EMI Calculator", "category": "Loans",
+        "slug": "car-loan-emi", "name": "Car Loan EMI Planner", "category": "Loans",
         "icon": "🚗", "description": "EMI for new or used car loans.",
         "is_featured": False, "sort_order": 4,
         "inputs": [
@@ -115,7 +115,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "personal-loan-emi", "name": "Personal Loan EMI Calculator", "category": "Loans",
+        "slug": "personal-loan-emi", "name": "Personal Loan EMI Planner", "category": "Loans",
         "icon": "💵", "description": "EMI for unsecured personal loans.",
         "is_featured": False, "sort_order": 5,
         "inputs": [
@@ -137,7 +137,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "education-loan-emi", "name": "Education Loan EMI Calculator", "category": "Loans",
+        "slug": "education-loan-emi", "name": "Education Loan EMI Planner", "category": "Loans",
         "icon": "🎓", "description": "EMI for education loans with optional moratorium.",
         "is_featured": False, "sort_order": 6,
         "inputs": [
@@ -159,7 +159,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "loan-eligibility", "name": "Loan Eligibility Calculator", "category": "Loans",
+        "slug": "loan-eligibility", "name": "Loan Eligibility Planner", "category": "Loans",
         "icon": "✅", "description": "Estimate max loan amount based on income.",
         "is_featured": False, "sort_order": 7,
         "inputs": [
@@ -182,7 +182,7 @@ CALCULATORS = [
         "constants": {"emi_to_income_ratio": 0.5},
     },
     {
-        "slug": "gold-loan-emi", "name": "Gold Loan EMI Calculator", "category": "Loans",
+        "slug": "gold-loan-emi", "name": "Gold Loan EMI Planner", "category": "Loans",
         "icon": "🪙", "description": "EMI for loans against gold.",
         "is_featured": False, "sort_order": 8,
         "inputs": [
@@ -308,7 +308,7 @@ CALCULATORS = [
 
     # ═══════════════════════════ INVESTMENTS / WEALTH (8) — incl. 1 featured (multi-mode) ═══════════════════════════
     {
-        "slug": "sip-future-value", "name": "SIP Future Value Calculator", "category": "Investments",
+        "slug": "sip-future-value", "name": "SIP Future Value Planner", "category": "Investments",
         "icon": "📈", "description": "Project the future value of a monthly SIP.",
         "is_featured": False, "sort_order": 14,
         "inputs": [
@@ -332,7 +332,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "lumpsum-future-value", "name": "Lumpsum Future Value Calculator", "category": "Investments",
+        "slug": "lumpsum-future-value", "name": "Lumpsum Future Value Planner", "category": "Investments",
         "icon": "💰", "description": "Project growth of a one-time investment.",
         "is_featured": False, "sort_order": 15,
         "inputs": [
@@ -401,7 +401,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "goal-based-sip", "name": "Goal-based SIP (Reverse Calculator)", "category": "Investments",
+        "slug": "goal-based-sip", "name": "Goal-based SIP (Reverse Planner)", "category": "Investments",
         "icon": "🎯", "description": "How much SIP do you need monthly to hit a target corpus?",
         "is_featured": False, "sort_order": 18,
         "inputs": [
@@ -419,7 +419,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "ppf-maturity", "name": "PPF Maturity Calculator", "category": "Investments",
+        "slug": "ppf-maturity", "name": "PPF Maturity Planner", "category": "Investments",
         "icon": "🏦", "description": "Project PPF maturity value (15-year default).",
         "is_featured": False, "sort_order": 19,
         "inputs": [
@@ -441,7 +441,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "fd-rd-maturity", "name": "FD / RD Maturity Calculator", "category": "Investments",
+        "slug": "fd-rd-maturity", "name": "FD / RD Maturity Planner", "category": "Investments",
         "icon": "🧾", "description": "Maturity value for Fixed or Recurring Deposits.",
         "is_featured": False, "sort_order": 20,
         "inputs": [
@@ -496,7 +496,7 @@ CALCULATORS = [
     {
         "slug": "retirement-corpus-needed", "name": "Retirement Corpus Needed", "category": "Retirement",
         "icon": "🌅", "description": "How big a corpus do you need to retire comfortably?",
-        "is_featured": False, "sort_order": 22,
+        "is_featured": True, "featured_order": 4, "sort_order": 22,
         "inputs": [
             {"key": "current_monthly_expense", "label": "Current Monthly Expense", "type": "number", "default": 50000, "min": 5000, "max": 1000000, "unit": "₹", "step": 1000},
             {"key": "years_to_retirement", "label": "Years to Retirement", "type": "number", "default": 25, "min": 1, "max": 45, "unit": "years", "step": 1},
@@ -613,7 +613,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "hra-exemption", "name": "HRA Exemption Calculator", "category": "Tax",
+        "slug": "hra-exemption", "name": "HRA Exemption Planner", "category": "Tax",
         "icon": "🏘️", "description": "Calculate your tax-exempt HRA amount.",
         "is_featured": False, "sort_order": 27,
         "inputs": [
@@ -662,7 +662,7 @@ CALCULATORS = [
         "constants": {"section_80c_limit": 150000},
     },
     {
-        "slug": "capital-gains-tax", "name": "Capital Gains Tax Calculator", "category": "Tax",
+        "slug": "capital-gains-tax", "name": "Capital Gains Tax Planner", "category": "Tax",
         "icon": "📈", "description": "Estimate LTCG/STCG tax on equity or debt investments.",
         "is_featured": False, "sort_order": 29,
         "inputs": [
@@ -712,7 +712,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "tds-on-fd", "name": "TDS on FD Interest Calculator", "category": "Tax",
+        "slug": "tds-on-fd", "name": "TDS on FD Interest Planner", "category": "Tax",
         "icon": "🏦", "description": "Estimate TDS deducted on your FD interest income.",
         "is_featured": False, "sort_order": 31,
         "inputs": [
@@ -734,7 +734,7 @@ CALCULATORS = [
     {
         "slug": "monthly-budget-planner", "name": "Monthly Expense Planner (50-30-20)", "category": "Budgeting",
         "icon": "🧮", "description": "Split your income into Needs / Wants / Savings.",
-        "is_featured": True, "featured_order": 4, "sort_order": 32,
+        "is_featured": True, "featured_order": 5, "sort_order": 32,
         "inputs": [
             {"key": "monthly_income", "label": "Monthly Take-Home Income", "type": "number", "default": 80000, "min": 5000, "max": 5000000, "unit": "₹", "step": 1000},
         ],
@@ -754,7 +754,7 @@ CALCULATORS = [
     {
         "slug": "emergency-fund-planner", "name": "Emergency Fund Planner", "category": "Budgeting",
         "icon": "🆘", "description": "How big should your emergency fund be?",
-        "is_featured": True, "featured_order": 5, "sort_order": 33,
+        "is_featured": False, "featured_order": 0, "sort_order": 33,
         "inputs": [
             {"key": "monthly_expenses", "label": "Total Monthly Expenses", "type": "number", "default": 50000, "min": 5000, "max": 1000000, "unit": "₹", "step": 1000},
             {"key": "job_stability", "label": "Job Stability (1=Very Stable, 3=Unstable/Freelance)", "type": "number", "default": 2, "min": 1, "max": 3, "unit": "", "step": 1},
@@ -774,7 +774,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "salary-inhand-calculator", "name": "Salary Breakup / In-hand Calculator", "category": "Budgeting",
+        "slug": "salary-inhand-calculator", "name": "Salary Breakup / In-hand Planner", "category": "Budgeting",
         "icon": "💼", "description": "Estimate your monthly in-hand salary from CTC.",
         "is_featured": False, "sort_order": 34,
         "inputs": [
@@ -811,7 +811,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "debt-to-income-ratio", "name": "Debt-to-Income Ratio Calculator", "category": "Budgeting",
+        "slug": "debt-to-income-ratio", "name": "Debt-to-Income Ratio Planner", "category": "Budgeting",
         "icon": "⚖️", "description": "Check how much of your income goes to debt.",
         "is_featured": False, "sort_order": 36,
         "inputs": [
@@ -918,7 +918,7 @@ CALCULATORS = [
     {
         "slug": "car-purchase-affordability", "name": "Car Purchase Affordability", "category": "Life Goals",
         "icon": "🚘", "description": "How expensive a car can you comfortably afford?",
-        "is_featured": False, "sort_order": 41,
+        "is_featured": True, "featured_order": 6, "sort_order": 41,
         "inputs": [
             {"key": "annual_income", "label": "Annual Income", "type": "number", "default": 1200000, "min": 200000, "max": 50000000, "unit": "₹", "step": 50000},
             {"key": "existing_emi", "label": "Existing Monthly EMIs", "type": "number", "default": 0, "min": 0, "max": 1000000, "unit": "₹", "step": 1000},
@@ -1010,7 +1010,7 @@ CALCULATORS = [
 
     # ═══════════════════════════ NET WORTH & MISC (5) ═══════════════════════════
     {
-        "slug": "net-worth-tracker", "name": "Net Worth Calculator", "category": "Net Worth",
+        "slug": "net-worth-tracker", "name": "Net Worth Planner", "category": "Net Worth",
         "icon": "📒", "description": "Calculate your current net worth.",
         "is_featured": False, "sort_order": 46,
         "inputs": [
@@ -1025,7 +1025,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "cagr-calculator", "name": "CAGR Calculator", "category": "Net Worth",
+        "slug": "cagr-calculator", "name": "CAGR Planner", "category": "Net Worth",
         "icon": "📐", "description": "Calculate Compound Annual Growth Rate between two values.",
         "is_featured": False, "sort_order": 47,
         "inputs": [
@@ -1057,7 +1057,7 @@ CALCULATORS = [
         "constants": {},
     },
     {
-        "slug": "compound-interest", "name": "Compound Interest Calculator", "category": "Net Worth",
+        "slug": "compound-interest", "name": "Compound Interest Planner", "category": "Net Worth",
         "icon": "🧮", "description": "Classic compound interest calculator with flexible compounding frequency.",
         "is_featured": False, "sort_order": 49,
         "inputs": [
