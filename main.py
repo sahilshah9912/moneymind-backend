@@ -45,6 +45,16 @@ app.add_middleware(
 @app.on_event("startup")
 def startup():
     init_db()
+    # Auto-seed calculators on every startup so they persist even after Render
+    # redeploys (which reset the SQLite file on the free tier).
+    # seed() is safe to call multiple times — it updates existing rows, never duplicates.
+    try:
+        from seed_calculators import seed
+        db = next(get_db())
+        seed(db)
+        db.close()
+    except Exception as e:
+        print(f"[startup] Calculator seed warning: {e}")
     # Create leads table if not exists
     from sqlalchemy import text
     from database import engine
