@@ -559,6 +559,132 @@ def admin_update_price(product_slug: str, data: PriceUpdateRequest,
     db.commit()
     return {"success": True, "product": product_slug, "city": data.city}
 
+
+# ── Product detail admin — full content for a single product ──────────────────
+@app.get("/api/admin/products/{product_slug}")
+def admin_get_product(product_slug: str, city: str = "Mumbai",
+                      db: Session = Depends(get_db), _=Depends(verify_admin)):
+    """Full product detail for the price editor — all cities' prices, insights,
+    vendor questions, and cost breakdown in one response."""
+    p = db.query(Product).filter_by(slug=product_slug).first()
+    if not p:
+        raise HTTPException(404, "Product not found")
+    prices = {pr.city: {
+        "budget_min": pr.budget_min, "budget_max": pr.budget_max,
+        "fair_min": pr.fair_min, "fair_max": pr.fair_max,
+        "premium_min": pr.premium_min, "premium_max": pr.premium_max,
+        "avg_price": pr.avg_price,
+    } for pr in p.prices}
+    return {
+        "id": p.id, "name": p.name, "slug": p.slug, "unit": p.unit,
+        "category": p.category.name if p.category else "—",
+        "prices": prices,
+        "insights": [{"id": i.id, "text": i.text, "sort_order": i.sort_order}
+                     for i in sorted(p.insights, key=lambda x: x.sort_order)],
+        "questions": [{"id": q.id, "question": q.question, "sort_order": q.sort_order}
+                      for q in sorted(p.questions, key=lambda x: x.sort_order)],
+        "breakdown": [{"id": b.id, "label": b.label, "min_val": b.min_val,
+                       "max_val": b.max_val, "percent": b.percent, "sort_order": b.sort_order}
+                      for b in sorted(p.breakdowns, key=lambda x: x.sort_order)],
+    }
+
+
+# ── Product Insights CRUD (market insights shown on Price Check result) ────────
+class ProductInsightIn(BaseModel):
+    product_slug: str
+    text: str
+    sort_order: int = 0
+
+@app.post("/api/admin/product-insights", dependencies=[Depends(verify_admin)])
+def admin_create_product_insight(data: ProductInsightIn, db: Session = Depends(get_db)):
+    p = db.query(Product).filter_by(slug=data.product_slug).first()
+    if not p: raise HTTPException(404, "Product not found")
+    row = Insight(product_id=p.id, text=data.text, sort_order=data.sort_order)
+    db.add(row); db.commit(); db.refresh(row)
+    return {"success": True, "id": row.id}
+
+@app.put("/api/admin/product-insights/{insight_id}", dependencies=[Depends(verify_admin)])
+def admin_update_product_insight(insight_id: int, data: dict, db: Session = Depends(get_db)):
+    row = db.query(Insight).filter_by(id=insight_id).first()
+    if not row: raise HTTPException(404)
+    if "text" in data: row.text = data["text"]
+    if "sort_order" in data: row.sort_order = data["sort_order"]
+    db.commit()
+    return {"success": True}
+
+@app.delete("/api/admin/product-insights/{insight_id}", dependencies=[Depends(verify_admin)])
+def admin_delete_product_insight(insight_id: int, db: Session = Depends(get_db)):
+    row = db.query(Insight).filter_by(id=insight_id).first()
+    if not row: raise HTTPException(404)
+    db.delete(row); db.commit()
+    return {"success": True}
+
+
+# ── Vendor Questions CRUD (smart questions shown on Price Check result) ────────
+class ProductQuestionIn(BaseModel):
+    product_slug: str
+    question: str
+    sort_order: int = 0
+
+@app.post("/api/admin/product-questions", dependencies=[Depends(verify_admin)])
+def admin_create_product_question(data: ProductQuestionIn, db: Session = Depends(get_db)):
+    p = db.query(Product).filter_by(slug=data.product_slug).first()
+    if not p: raise HTTPException(404, "Product not found")
+    row = VendorQuestion(product_id=p.id, question=data.question, sort_order=data.sort_order)
+    db.add(row); db.commit(); db.refresh(row)
+    return {"success": True, "id": row.id}
+
+@app.put("/api/admin/product-questions/{question_id}", dependencies=[Depends(verify_admin)])
+def admin_update_product_question(question_id: int, data: dict, db: Session = Depends(get_db)):
+    row = db.query(VendorQuestion).filter_by(id=question_id).first()
+    if not row: raise HTTPException(404)
+    if "question" in data: row.question = data["question"]
+    if "sort_order" in data: row.sort_order = data["sort_order"]
+    db.commit()
+    return {"success": True}
+
+@app.delete("/api/admin/product-questions/{question_id}", dependencies=[Depends(verify_admin)])
+def admin_delete_product_question(question_id: int, db: Session = Depends(get_db)):
+    row = db.query(VendorQuestion).filter_by(id=question_id).first()
+    if not row: raise HTTPException(404)
+    db.delete(row); db.commit()
+    return {"success": True}
+
+
+# ── Cost Breakdown CRUD (shown on Price Check result) ─────────────────────────
+class ProductBreakdownIn(BaseModel):
+    product_slug: str
+    label: str
+    min_val: Optional[float] = None
+    max_val: Optional[float] = None
+    percent: Optional[float] = None
+    sort_order: int = 0
+
+@app.post("/api/admin/product-breakdown", dependencies=[Depends(verify_admin)])
+def admin_create_product_breakdown(data: ProductBreakdownIn, db: Session = Depends(get_db)):
+    p = db.query(Product).filter_by(slug=data.product_slug).first()
+    if not p: raise HTTPException(404, "Product not found")
+    row = CostBreakdown(product_id=p.id, label=data.label, min_val=data.min_val,
+                        max_val=data.max_val, percent=data.percent, sort_order=data.sort_order)
+    db.add(row); db.commit(); db.refresh(row)
+    return {"success": True, "id": row.id}
+
+@app.put("/api/admin/product-breakdown/{breakdown_id}", dependencies=[Depends(verify_admin)])
+def admin_update_product_breakdown(breakdown_id: int, data: dict, db: Session = Depends(get_db)):
+    row = db.query(CostBreakdown).filter_by(id=breakdown_id).first()
+    if not row: raise HTTPException(404)
+    for field in ["label", "min_val", "max_val", "percent", "sort_order"]:
+        if field in data: setattr(row, field, data[field])
+    db.commit()
+    return {"success": True}
+
+@app.delete("/api/admin/product-breakdown/{breakdown_id}", dependencies=[Depends(verify_admin)])
+def admin_delete_product_breakdown(breakdown_id: int, db: Session = Depends(get_db)):
+    row = db.query(CostBreakdown).filter_by(id=breakdown_id).first()
+    if not row: raise HTTPException(404)
+    db.delete(row); db.commit()
+    return {"success": True}
+
 # ── Admin Products list (for price manager) ───────────────────────────────────
 @app.get("/api/admin/products")
 def admin_list_products(city: str = "Mumbai", db: Session = Depends(get_db), _=Depends(verify_admin)):
