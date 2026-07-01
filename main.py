@@ -53,6 +53,11 @@ def startup():
         db = next(get_db())
         seed(db)
         db.close()
+        # Also update metro city prices on every startup so they stay current
+        db2 = next(get_db())
+        from update_metro_prices import update
+        update(db2)
+        db2.close()
     except Exception as e:
         print(f"[startup] Calculator seed warning: {e}")
     # Create leads table if not exists
